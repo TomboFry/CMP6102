@@ -1,0 +1,143 @@
+use piston_window::*;
+use piston::input::{Button, Motion};
+use piston::input::mouse::MouseButton;
+use conrod::text::font;
+use gui::GUIState;
+use modal::Modal;
+use population::Population;
+use creature::Creature;
+use rand::{self, Rng, ThreadRng};
+
+pub struct UIData {
+	// Mouse position
+	pub mouse_x: f64, pub mouse_y: f64,
+
+	// Is the mouse currently being pressed?
+	pub mouse_left_down: bool, pub mouse_right_down: bool,
+
+	// Window dimensions and speed to run at
+	pub width: u32, pub height: u32, pub fps: u64,
+
+	// Window title (and main menu title)
+	pub title: &'static str,
+
+	// Which page should we draw?
+	pub gui_state: GUIState,
+
+	// Generation Test Options
+	pub generation_size: u32,
+	pub use_genetic_algorithm: bool,
+	pub use_simulated_annealing: bool,
+	pub use_hill_climbing: bool,
+	pub population: Option<Population>,
+	pub chosen_creature: Option<Creature>,
+
+	// Modal information
+	pub modal_visible: bool,
+	pub modal_struct: Option<Modal>
+}
+
+impl UIData {
+	pub fn new(title: &'static str, win_w: u32, win_h: u32, frames: u64) -> UIData {
+		UIData {
+			mouse_x: 0.0, mouse_y: 0.0,
+			mouse_left_down: false, mouse_right_down: false,
+			width: win_w, height: win_h, fps: frames,
+			title: title,
+			gui_state: GUIState::Menu,
+			generation_size: 1000,
+			use_genetic_algorithm: true,
+			use_simulated_annealing: true,
+			use_hill_climbing: true,
+			population: None,
+			chosen_creature: None,
+			modal_visible: false,
+			modal_struct: None
+		}
+	}
+
+	pub fn modal_new(&mut self, title: String, message: String, btn_a_label: Option<String>, btn_b_label: Option<String>) {
+		let mut button_a_label = "Okay".to_string();
+		let mut button_b_label = "Close".to_string();
+
+		if let Some(lbl_a) = btn_a_label { button_a_label = lbl_a; }
+		if let Some(lbl_b) = btn_b_label { button_b_label = lbl_b; }
+
+		self.modal_struct = Some(Modal {
+			title: title,
+			message: message,
+			button_a_label: button_a_label,
+			button_b_label: button_b_label
+		});
+		self.modal_visible = true;
+	}
+
+	pub fn modal_close(&mut self) {
+		self.modal_visible = false;
+		self.modal_struct = None;
+	}
+
+	pub fn event(&mut self, event: &Input) {
+		match event {
+			// Mouse and Keyboard Down
+			&Input::Press(button)  => {
+				if button == Button::Mouse(MouseButton::Left) {
+					self.mouse_left_down = true;
+				} else if button == Button::Mouse(MouseButton::Right) {
+					self.mouse_right_down = true;
+				}
+			},
+
+			// Mouse and Keyboard Up
+			&Input::Release(button) => {
+				if button == Button::Mouse(MouseButton::Left) {
+					self.mouse_left_down = false;
+				} else if button == Button::Mouse(MouseButton::Right) {
+					self.mouse_right_down = false;
+				}
+			},
+
+			// Mouse and Scroll Change
+			&Input::Move(x) => {
+				match x {
+					Motion::MouseCursor(mx, my) => {
+						self.mouse_x = mx;
+						self.mouse_y = my;
+					},
+					_ => {}
+				}
+			},
+
+			// Window Resize
+			&Input::Resize(x, y) => {
+				self.width = x;
+				self.height = y;
+			},
+
+			_ => {}
+		};
+	}
+
+	pub fn init_tests(&mut self) {
+		let mut rng = rand::thread_rng();
+
+		self.population = Some(Population::new(self.generation_size, &mut rng));
+		self.set_creature(&mut rng);
+		self.gui_state = GUIState::DrawCreature;
+	}
+
+	pub fn set_creature(&mut self, rng: &mut ThreadRng) {
+		let idx = rng.gen_range(0, self.generation_size);
+
+		if let Some(ref pop) = self.population {
+			self.chosen_creature = Some(pop.creatures[idx as usize].clone());
+		}
+	}
+}
+
+pub struct Fonts {
+	pub regular: font::Id,
+	pub bold: font::Id,
+	pub italic: font::Id,
+	pub bold_italic: font::Id
+}
