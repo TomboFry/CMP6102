@@ -4,7 +4,6 @@ use conrod::color::Color;
 use conrod::{widget, UiCell, Colorable, Positionable,
 	         Widget, Sizeable, Labelable, Borderable};
 use app::{UIData, Fonts};
-use rand;
 
 widget_ids! {
 	pub struct Ids {
@@ -30,6 +29,7 @@ widget_ids! {
 		new_btn_back,
 
 		dc_btn,
+		dc_creature,
 		dc_back,
 
 		other_title,
@@ -67,23 +67,23 @@ const COL_TXT:      Color = rgb!( 33,  33,  33);
 const COL_BTN_GO:   Color = rgb!(104, 159,  56);
 const COL_BTN_STOP: Color = rgb!(244,  67,  54);
 
-pub fn gui (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
-	match data.gui_state {
-		GUIState::Menu    => menu_main(ui, ids, data, fonts),
-		GUIState::NewTest => menu_new_test(ui, ids, data, fonts),
-		GUIState::Options => menu_options(ui, ids, data, fonts),
-		GUIState::DrawCreature => menu_drawcreature(ui, ids, data, fonts),
+pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
+	match app.gui_state {
+		GUIState::Menu    => menu_main(ui, ids, app, fonts),
+		GUIState::NewTest => menu_new_test(ui, ids, app, fonts),
+		GUIState::Options => menu_options(ui, ids, app, fonts),
+		GUIState::DrawCreature => menu_drawcreature(ui, ids, app, fonts),
 		_ => {}
 	}
 
-	if data.modal_visible {
-		draw_modal(ui, ids, data, fonts)
+	if app.modal_visible {
+		draw_modal(ui, ids, app, fonts)
 	}
 }
 
-fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
-	let canvas_width = data.width as f64 * 0.45;
-	let canvas_height = data.height as f64 - (MARGIN * 2.0);
+fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
+	let canvas_width = app.width as f64 * 0.45;
+	let canvas_height = app.height as f64 - (MARGIN * 2.0);
 
 	widget::Canvas::new()
 		.color(COL_BG)
@@ -93,7 +93,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.menu_canvas, ui);
 
-	widget::Text::new(data.title)
+	widget::Text::new(app.title)
 		.color(COL_TXT)
 		.font_size(30)
 		.font_id(fonts.bold)
@@ -113,7 +113,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.menu_btn_start, ui)
 	{
-		data.gui_state = GUIState::NewTest;
+		app.gui_state = GUIState::NewTest;
 	}
 
 	for _press in widget::Button::new()
@@ -126,8 +126,8 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.menu_btn_continue, ui)
 	{
-		// data.gui_state = GUIState::NewTest;
-		data.modal_new("Not Implemented Yet.".to_string(), "It might be a while".to_string(), None, None);
+		// app.gui_state = GUIState::NewTest;
+		app.modal_new("Not Implemented Yet.".to_string(), "It might be a while".to_string(), None, None);
 	}
 
 	for _press in widget::Button::new()
@@ -140,7 +140,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.menu_btn_options, ui)
 	{
-		data.gui_state = GUIState::Options;
+		app.gui_state = GUIState::Options;
 	}
 
 	for _press in widget::Button::new()
@@ -157,9 +157,9 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 	}
 }
 
-fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
-	let canvas_width = data.width as f64 * 0.45;
-	let canvas_height = data.height as f64 - (MARGIN * 2.0);
+fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
+	let canvas_width = app.width as f64 * 0.45;
+	let canvas_height = app.height as f64 - (MARGIN * 2.0);
 
 	// Background Canvas
 	widget::Canvas::new()
@@ -182,13 +182,13 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.set(ids.new_title, ui);
 
 	// Get and set the values for the toggle buttons
-	let use_ga = data.use_genetic_algorithm;
+	let use_ga = app.use_genetic_algorithm;
 	let use_ga_title = if use_ga { "Use Genetic Algorithm: On" } else { "Use Genetic Algorithm: Off" };
 
-	let use_sa = data.use_simulated_annealing;
+	let use_sa = app.use_simulated_annealing;
 	let use_sa_title = if use_sa { "Use Simulated Annealing: On" } else { "Use Simulated Annealing: Off" };
 
-	let use_hc = data.use_hill_climbing;
+	let use_hc = app.use_hill_climbing;
 	let use_hc_title = if use_hc { "Use Hill Climbing: On" } else { "Use Hill Climbing: Off" };
 
 	// First toggle: Genetic Algorithms
@@ -202,7 +202,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_toggle_ga, ui)
 	{
-		data.use_genetic_algorithm = use_ga;
+		app.use_genetic_algorithm = use_ga;
 	}
 
 	// Second toggle: Simulated Annealing
@@ -216,7 +216,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_toggle_sa, ui)
 	{
-		data.use_simulated_annealing = use_sa;
+		app.use_simulated_annealing = use_sa;
 	}
 
 	// Third toggle: Hill Climbing
@@ -230,12 +230,12 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_toggle_hc, ui)
 	{
-		data.use_hill_climbing = use_hc;
+		app.use_hill_climbing = use_hc;
 	}
 
 	// Set the size of each generation (100-1000)
-	let gensize = data.generation_size as f64;
-	for value in widget::Slider::new(gensize, 100.0, 1000000.0)
+	let gensize = app.generation_size as f64;
+	for value in widget::Slider::new(gensize, 10.0, 1000.0)
 		.label(&*format!("Generation Size: {} creatures", gensize))
 		.label_color(COL_LBL)
 		.color(COL_BTN)
@@ -245,7 +245,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_slider_gensize, ui)
 	{
-		data.generation_size = ((value / 10.0) as u32) * 10;
+		app.generation_size = ((value / 10.0) as u32) * 10;
 	}
 
 	// Start button - Will start the initialisation of the creatures, and the test criteria
@@ -259,7 +259,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_btn_start, ui)
 	{
-		data.init_tests();
+		app.init_tests();
 	}
 
 	// Back button
@@ -273,13 +273,13 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) 
 		.border(0.0)
 		.set(ids.new_btn_back, ui)
 	{
-		data.gui_state = GUIState::Menu;
+		app.gui_state = GUIState::Menu;
 	}
 }
 
-fn menu_options (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
-	let canvas_width = data.width as f64 - (MARGIN * 2.0);
-	let canvas_height = data.height as f64 - (MARGIN * 2.0);
+fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
+	let canvas_width = app.width as f64 - (MARGIN * 2.0);
+	let canvas_height = app.height as f64 - (MARGIN * 2.0);
 
 	widget::Canvas::new()
 		.color(COL_BG)
@@ -308,7 +308,7 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.options_btn_back, ui)
 	{
-		data.gui_state = GUIState::Menu;
+		app.gui_state = GUIState::Menu;
 	}
 
 	for _press in widget::Button::new()
@@ -321,22 +321,34 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		.border(0.0)
 		.set(ids.options_btn_modal, ui)
 	{
-		data.modal_new("Testing the modal dialogue box".to_string(), "This is an example of a really long string. It should hopefully wrap over multiple lines and demonstrate that it actually does work!".to_string(), Some("Say Whaaaat?!".to_string()), None);
+		app.modal_new("Testing the modal dialogue box".to_string(), "This is an example of a really long string. It should hopefully wrap over multiple lines and demonstrate that it actually does work!".to_string(), Some("Say Whaaaat?!".to_string()), None);
 	}
 }
 
-fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, data: &mut UIData, _: &Fonts) {
+fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts) {
 	for _press in widget::Button::new()
 		.color(COL_BTN)
-		.label("Different Creature")
+		.label(&*format!("Do Generation (gen {})", app.generation))
 		.label_color(COL_LBL)
 		.middle()
 		.w_h(384.0, 48.0)
 		.border(0.0)
 		.set(ids.dc_btn, ui)
 	{
-		let mut rng = rand::thread_rng();
-		data.set_creature(&mut rng);
+		app.generation_single();
+	}
+
+	for _press in widget::Button::new()
+		.color(COL_BTN)
+		.label(&*format!("Different Creature ({})", app.creature))
+		.label_color(COL_LBL)
+		.middle()
+		.down_from(ids.dc_btn, SPACING)
+		.w_h(384.0, 48.0)
+		.border(0.0)
+		.set(ids.dc_creature, ui)
+	{
+		app.set_creature();
 	}
 
 	for _press in widget::Button::new()
@@ -344,26 +356,26 @@ fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, data: &mut UIData, _: &Fonts) 
 		.label("< Back")
 		.label_color(COL_LBL)
 		.middle()
-		.down_from(ids.dc_btn, SPACING)
+		.down_from(ids.dc_creature, SPACING)
 		.w_h(384.0, 48.0)
 		.border(0.0)
 		.set(ids.dc_back, ui)
 	{
-		data.gui_state = GUIState::Menu;
-		data.population = None;
-		data.chosen_creature = None;
+		app.gui_state = GUIState::NewTest;
+		app.reset_optmethods();
+		println!("---- Test Ended");
 	}
 }
 
-fn draw_modal (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
+fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	let mut action: u8 = 0;
 
-	if let Some(ref mut modal) = data.modal_struct {
-		let canvas_width = data.width as f64;
-		let canvas_height = data.height as f64;
+	if let Some(ref mut modal) = app.modal_struct {
+		let canvas_width = app.width as f64;
+		let canvas_height = app.height as f64;
 
-		let modal_width = (data.width as f64).min(848.0);
-		let modal_height = (data.height as f64).min(480.0);
+		let modal_width = (app.width as f64).min(848.0);
+		let modal_height = (app.height as f64).min(480.0);
 
 		widget::Canvas::new()
 			.rgba(0.0, 0.0, 0.0, 0.75)
@@ -422,8 +434,8 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, data: &mut UIData, fonts: &Fonts) {
 		}
 	}
 	if action == 1 {
-		data.modal_close();
+		app.modal_close();
 	} else if action == 2 {
-		data.modal_close();
+		app.modal_close();
 	}
 }

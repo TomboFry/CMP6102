@@ -5,8 +5,9 @@ use conrod::text::font;
 use gui::GUIState;
 use modal::Modal;
 use population::Population;
-use creature::Creature;
-use rand::{self, Rng, ThreadRng};
+use rand::{Rng, StdRng};
+use optimisationmethods::{self, OptimisationMethod};
+// use creature::Creature;
 
 pub struct UIData {
 	// Mouse position
@@ -24,13 +25,17 @@ pub struct UIData {
 	// Which page should we draw?
 	pub gui_state: GUIState,
 
+	// Rng object to create random numbers
+	pub rng: StdRng,
+
 	// Generation Test Options
 	pub generation_size: u32,
 	pub use_genetic_algorithm: bool,
 	pub use_simulated_annealing: bool,
 	pub use_hill_climbing: bool,
-	pub population: Option<Population>,
-	pub chosen_creature: Option<Creature>,
+	pub generation: usize,
+	pub creature: usize,
+	pub optmethods: Vec<Box<OptimisationMethod>>,
 
 	// Modal information
 	pub modal_visible: bool,
@@ -39,20 +44,28 @@ pub struct UIData {
 
 impl UIData {
 	pub fn new(title: &'static str, win_w: u32, win_h: u32, frames: u64) -> UIData {
-		UIData {
-			mouse_x: 0.0, mouse_y: 0.0,
-			mouse_left_down: false, mouse_right_down: false,
-			width: win_w, height: win_h, fps: frames,
-			title: title,
-			gui_state: GUIState::Menu,
-			generation_size: 1000,
-			use_genetic_algorithm: true,
-			use_simulated_annealing: true,
-			use_hill_climbing: true,
-			population: None,
-			chosen_creature: None,
-			modal_visible: false,
-			modal_struct: None
+		match StdRng::new() {
+			// Very unlikely to fail but just in case it does, this will close the program before it even really begins
+			Err (err) => {
+				panic!("{}", err);
+			},
+			Ok(val) => UIData {
+				mouse_x: 0.0, mouse_y: 0.0,
+				mouse_left_down: false, mouse_right_down: false,
+				width: win_w, height: win_h, fps: frames,
+				title: title,
+				gui_state: GUIState::Menu,
+				rng: val,
+				generation_size: 1000,
+				use_genetic_algorithm: true,
+				use_simulated_annealing: true,
+				use_hill_climbing: true,
+				generation: 0,
+				creature: 0,
+				optmethods: Vec::with_capacity(3),
+				modal_visible: false,
+				modal_struct: None
+			}
 		}
 	}
 
@@ -119,19 +132,32 @@ impl UIData {
 	}
 
 	pub fn init_tests(&mut self) {
-		let mut rng = rand::thread_rng();
-
-		self.population = Some(Population::new(self.generation_size, &mut rng));
-		self.set_creature(&mut rng);
 		self.gui_state = GUIState::DrawCreature;
+
+		let pop = Population::new(self.generation_size, &mut self.rng);
+		let ga = optimisationmethods::genetic_algorithm::GeneticAlgorithm::new(pop.clone());
+		self.optmethods.push(ga);
 	}
 
-	pub fn set_creature(&mut self, rng: &mut ThreadRng) {
-		let idx = rng.gen_range(0, self.generation_size);
-
-		if let Some(ref pop) = self.population {
-			self.chosen_creature = Some(pop.creatures[idx as usize].clone());
+	pub fn generation_single(&mut self) {
+		for method in &mut self.optmethods {
+			method.generation_single(&mut self.rng);
 		}
+		self.generation += 1;
+	}
+
+	pub fn set_creature(&mut self) {
+		self.creature = self.rng.gen_range(0, self.generation_size as usize);
+
+		// if let Some(ref pop) = self.population {
+		// 	self.chosen_creature = Some(pop.creatures[idx as usize].clone());
+		// }
+	}
+
+	pub fn reset_optmethods(&mut self) {
+		self.optmethods.clear();
+		self.generation = 0;
+		self.creature = 0;
 	}
 }
 
