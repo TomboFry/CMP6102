@@ -11,7 +11,7 @@ impl Population {
 	/// Creates a new population with a specified size
 	pub fn new(pop_size: u32, rng: &mut StdRng) -> Population {
 		// Generate a population with a specified size
-		let creatures = (0..pop_size).map(|_| {
+		let creatures = (0 .. pop_size).map(|_| {
 			Creature::new(rng)
 		}).collect::<Vec<Creature>>();
 
@@ -23,6 +23,12 @@ impl Population {
 	pub fn empty(pop_size: usize) -> Population {
 		Population {
 			creatures: Vec::with_capacity(pop_size)
+		}
+	}
+
+	pub fn calculate_fitness(&mut self) {
+		for creature in &mut self.creatures {
+			creature.calculate_fitness();
 		}
 	}
 

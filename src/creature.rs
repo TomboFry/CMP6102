@@ -9,11 +9,11 @@ use piston_window::{ellipse, line, Context, Graphics};
 /// Constants to define a creatures lower and upper exclusive bounds.
 /// eg. a creature can have only 2 to 6 nodes. Any less and its useless,
 ///     any more and it's going to behave like a big mess.
-const BOUNDS_NODE_COUNT: Range<u8> = 2..7;
-const BOUNDS_NODE_X: Range<f32> = 0.0..256.0;
-const BOUNDS_NODE_Y: Range<f32> = 0.0..256.0;
-const BOUNDS_NODE_FRICTION: Range<f32> = 0.0..1.0;
-const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 0.2..1.0;
+pub const BOUNDS_NODE_COUNT: Range<u8> = 2 .. 7;
+pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
+pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 256.0;
+pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.0 .. 1.0;
+pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 0.2 .. 1.0;
 
 /// Add "gen" function to range, which will return a random value between its lower and upper bounds
 pub trait RangeBounds<T> {
@@ -95,7 +95,7 @@ impl Creature {
 
 		// Create and add nodes to the create, and collect them into a vector
 		//   for the muscles to use
-		let nodes: Vec<Node> = (0..num_nodes).map(|_| {
+		let nodes: Vec<Node> = (0 .. num_nodes).map(|_| {
 			// Set the node's properties to random values within the bounds.
 			let x = BOUNDS_NODE_X.gen(rng);
 			let y = BOUNDS_NODE_Y.gen(rng);
@@ -105,7 +105,7 @@ impl Creature {
 		}).collect::<Vec<Node>>();
 
 		// Add a muscle for at least each node.
-		let muscles: Vec<Muscle> = (0..nodes.len()).map(|idx| {
+		let muscles: Vec<Muscle> = (0 .. nodes.len()).map(|idx| {
 			let mut idx_other;
 
 			// Make sure the other node is not pointing to the same node as itself
@@ -190,6 +190,26 @@ impl Creature {
 
 			ellipse(col, rect, c.transform, g);
 		}
+	}
+
+	pub fn calculate_fitness(&mut self) {
+
+		// INCREDIBLY RUDIMENTARY fitness calculation
+		// based on the values supplied by it's properties
+		// rather than actual physics testing.
+
+		let mut fitness: f32 = 0.0;
+		for node in &self.nodes {
+			fitness += node.x * 0.75;
+			fitness -= node.y * 0.5;
+			fitness += node.friction * 8.0;
+		}
+
+		for muscle in &self.muscles {
+			fitness += muscle.strength * 0.5;
+			fitness += muscle.len * 0.6;
+		}
+		self.fitness = fitness;
 	}
 }
 
