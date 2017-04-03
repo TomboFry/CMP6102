@@ -1,4 +1,5 @@
 use creature::Creature;
+use physics::Physics;
 use rand::StdRng;
 
 #[derive(Clone)]
@@ -27,14 +28,17 @@ impl Population {
 	}
 
 	pub fn calculate_fitness(&mut self) {
-		for creature in &mut self.creatures {
-			creature.calculate_fitness();
-		}
+		let physics = Physics::full_simulation_population(self);
 	}
 
 	/// Returns the fittest creature in the population
 	pub fn fittest(&self) -> &Creature {
 		self.creatures.iter().max().unwrap()
+	}
+
+	/// Returns the unfittest creature in the population
+	pub fn weakest(&self) -> &Creature {
+		self.creatures.iter().min().unwrap()
 	}
 
 	pub fn fitness_average(&self) -> f32 {

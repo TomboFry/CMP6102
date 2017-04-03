@@ -34,7 +34,11 @@ impl OptimisationMethod for HillClimbing {
 		self.data.generations[gen].fittest().clone()
 	}
 
-	fn creature_get (&self, gen: usize, idx: usize) -> Creature {
-		self.data.generations[gen].creatures[idx].clone()
+	fn creature_get (&mut self, gen: usize, idx: usize) -> &mut Creature {
+		&mut self.data.generations[gen].creatures[idx]
+	}
+
+	fn get_data(&mut self) -> &mut OpMethodData {
+		&mut self.data
 	}
 }

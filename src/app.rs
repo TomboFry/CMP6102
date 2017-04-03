@@ -7,6 +7,7 @@ use modal::Modal;
 use population::Population;
 use rand::{Rng, StdRng};
 use optimisationmethods::{self, OptimisationMethod};
+use physics::Physics;
 // use creature::Creature;
 
 pub struct UIData {
@@ -33,8 +34,11 @@ pub struct UIData {
 	pub use_genetic_algorithm: bool,
 	pub use_simulated_annealing: bool,
 	pub use_hill_climbing: bool,
-	pub generation: usize,
-	pub creature: usize,
+	pub spectate_generation: usize,
+	pub spectate_creature: usize,
+	pub draw_simulation: bool,
+	pub simulation_frame: u32,
+	pub current_fitness: f32,
 	pub optmethods: Vec<Box<OptimisationMethod>>,
 
 	// Modal information
@@ -60,8 +64,11 @@ impl UIData {
 				use_genetic_algorithm: true,
 				use_simulated_annealing: true,
 				use_hill_climbing: true,
-				generation: 0,
-				creature: 0,
+				spectate_generation: 0,
+				spectate_creature: 0,
+				draw_simulation: false,
+				simulation_frame: 0,
+				current_fitness: 0.0,
 				optmethods: Vec::with_capacity(3),
 				modal_visible: false,
 				modal_struct: None
@@ -132,32 +139,52 @@ impl UIData {
 	}
 
 	pub fn init_tests(&mut self) {
-		self.gui_state = GUIState::DrawCreature;
+		self.gui_state = GUIState::Spectate;
 
 		let pop = Population::new(self.generation_size, &mut self.rng);
 		let ga = optimisationmethods::genetic_algorithm::GeneticAlgorithm::new(pop.clone());
 		self.optmethods.push(ga);
+
+		self.set_creature();
+
+		self.draw_simulation = true;
 	}
 
 	pub fn generation_single(&mut self) {
 		for method in &mut self.optmethods {
 			method.generation_single(&mut self.rng);
 		}
-		self.generation += 1;
+		self.spectate_generation += 1;
+		self.simulation_frame = 0;
 	}
 
 	pub fn set_creature(&mut self) {
-		self.creature = self.rng.gen_range(0, self.generation_size as usize);
+		self.reset_simulation();
+		let mut data = self.optmethods[0].get_data();
+		self.spectate_creature = self.rng.gen_range(0, self.generation_size as usize);
+		Physics::full_simulation_creature(&mut data.generations[self.spectate_generation].creatures[self.spectate_creature]);
+		self.current_fitness = data.generations[self.spectate_generation].creatures[self.spectate_creature].fitness;
+	}
 
-		// if let Some(ref pop) = self.population {
-		// 	self.chosen_creature = Some(pop.creatures[idx as usize].clone());
-		// }
+	pub fn reset_simulation(&mut self) {
+		for method in &mut self.optmethods {
+			let mut data = method.get_data();
+			for node in 0..data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes.len() {
+				data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].x = data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].start_x;
+				data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].y = data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].start_y;
+				data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].vx = 0.0;
+				data.generations[self.spectate_generation].creatures[self.spectate_creature].nodes[node].vy = 0.0;
+			}
+		}
+		self.simulation_frame = 0;
 	}
 
 	pub fn reset_optmethods(&mut self) {
 		self.optmethods.clear();
-		self.generation = 0;
-		self.creature = 0;
+		self.spectate_generation = 0;
+		self.spectate_creature = 0;
+		self.draw_simulation = false;
+		self.simulation_frame = 0;
 	}
 }
 

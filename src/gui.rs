@@ -30,6 +30,7 @@ widget_ids! {
 
 		dc_btn,
 		dc_creature,
+		dc_reset,
 		dc_back,
 
 		other_title,
@@ -48,7 +49,8 @@ pub enum GUIState {
 	Menu,
 	NewTest,
 	Options,
-	DrawCreature
+	DrawCreature,
+	Spectate
 }
 
 const MARGIN: f64 = 48.0;
@@ -69,10 +71,10 @@ const COL_BTN_STOP: Color = rgb!(244,  67,  54);
 
 pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	match app.gui_state {
-		GUIState::Menu    => menu_main(ui, ids, app, fonts),
-		GUIState::NewTest => menu_new_test(ui, ids, app, fonts),
-		GUIState::Options => menu_options(ui, ids, app, fonts),
-		GUIState::DrawCreature => menu_drawcreature(ui, ids, app, fonts),
+		GUIState::Menu     => menu_main(ui, ids, app, fonts),
+		GUIState::NewTest  => menu_new_test(ui, ids, app, fonts),
+		GUIState::Options  => menu_options(ui, ids, app, fonts),
+		GUIState::Spectate => menu_spectate(ui, ids, app, fonts),
 		_ => {}
 	}
 
@@ -325,13 +327,14 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	}
 }
 
-fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts) {
+fn menu_spectate (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts) {
+	let btn_width: f64 = 512.0;
 	for _press in widget::Button::new()
 		.color(COL_BTN)
-		.label(&*format!("Do Generation (gen {})", app.generation))
+		.label(&*format!("Do Generation (gen {})", app.spectate_generation))
 		.label_color(COL_LBL)
-		.middle()
-		.w_h(384.0, 48.0)
+		.top_left()
+		.w_h(btn_width, 48.0)
 		.border(0.0)
 		.set(ids.dc_btn, ui)
 	{
@@ -340,11 +343,11 @@ fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts) {
 
 	for _press in widget::Button::new()
 		.color(COL_BTN)
-		.label(&*format!("Different Creature ({})", app.creature))
+		.label(&*format!("Different Creature ({}, {})", app.spectate_creature, app.current_fitness))
 		.label_color(COL_LBL)
-		.middle()
-		.down_from(ids.dc_btn, SPACING)
-		.w_h(384.0, 48.0)
+		.top_left()
+		.down_from(ids.dc_btn, SPACING / 4.0)
+		.w_h(btn_width, 48.0)
 		.border(0.0)
 		.set(ids.dc_creature, ui)
 	{
@@ -353,11 +356,24 @@ fn menu_drawcreature (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts) {
 
 	for _press in widget::Button::new()
 		.color(COL_BTN)
+		.label("Reset Simulation")
+		.label_color(COL_LBL)
+		.top_left()
+		.down_from(ids.dc_creature, SPACING / 4.0)
+		.w_h(btn_width, 48.0)
+		.border(0.0)
+		.set(ids.dc_reset, ui)
+	{
+		app.reset_simulation();
+	}
+
+	for _press in widget::Button::new()
+		.color(COL_BTN)
 		.label("< Back")
 		.label_color(COL_LBL)
-		.middle()
-		.down_from(ids.dc_creature, SPACING)
-		.w_h(384.0, 48.0)
+		.top_left()
+		.down_from(ids.dc_reset, SPACING / 4.0)
+		.w_h(btn_width, 48.0)
 		.border(0.0)
 		.set(ids.dc_back, ui)
 	{

@@ -13,10 +13,12 @@ mod modal;
 mod creature;
 mod population;
 mod optimisationmethods;
+mod physics;
 
 use piston_window::*;
 use piston_window::texture::UpdateTexture;
 use gui::GUIState;
+use physics::Physics;
 
 fn main () {
 
@@ -113,12 +115,15 @@ fn main () {
 			fn texture_from_image<T>(img: &T) -> &T { img };
 
 			match app.gui_state {
-				GUIState::DrawCreature => {
-					// if let Some(ref mut creature) = app.chosen_creature {
-					// 	creature.draw(context, graphics);
-					// }
+				GUIState::Spectate => {
 					if app.optmethods.len() > 0 {
-						app.optmethods[0].creature_get(app.generation, app.creature).draw(context, graphics);
+						let mut creature = app.optmethods[0].creature_get(app.spectate_generation, app.spectate_creature);
+						creature.draw(0.0, app.height as f64 - 32.0, context, graphics);
+						rectangle([0.25, 1.0, 0.2, 1.0], [0.0, app.height as f64 - 32.0, app.width as f64, 32.0], context.transform, graphics);
+						if app.draw_simulation && app.simulation_frame < 900 {
+							Physics::simulation_step(app.simulation_frame, &mut creature);
+							app.simulation_frame += 1;
+						}
 					}
 				},
 				_ => {},

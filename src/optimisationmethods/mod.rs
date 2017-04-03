@@ -23,5 +23,6 @@ impl OpMethodData {
 pub trait OptimisationMethod {
 	fn generation_single    (&mut self, rng: &mut StdRng);
 	fn creature_get_fittest (&self, gen: usize) -> Creature;
-	fn creature_get         (&self, gen: usize, idx: usize) -> Creature;
+	fn creature_get         (&mut self, gen: usize, idx: usize) -> &mut Creature;
+	fn get_data             (&mut self) -> &mut OpMethodData;
 }
