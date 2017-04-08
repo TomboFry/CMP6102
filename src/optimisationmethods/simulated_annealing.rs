@@ -4,24 +4,24 @@ use optimisationmethods::{OptimisationMethod, OpMethodData};
 use rand::StdRng;
 use time;
 
-pub struct HillClimbing {
+pub struct SimulatedAnnealing {
 	pub data: OpMethodData
 }
 
-impl HillClimbing {
-	pub fn new(population: Population) -> Box<HillClimbing> {
-		Box::new(HillClimbing {
+impl SimulatedAnnealing {
+	pub fn new(population: Population) -> Box<SimulatedAnnealing> {
+		Box::new(SimulatedAnnealing {
 			data: OpMethodData::new(vec![population])
 		})
 	}
 }
 
-impl OptimisationMethod for HillClimbing {
+impl OptimisationMethod for SimulatedAnnealing {
 	fn generation_single(&mut self, rng: &mut StdRng) {
 		let gen_size = self.data.generations[self.data.gen].creatures.len();
 		let mut new_population = Population::empty(gen_size);
 
-		println!("HC - Gen {}: Lowest Fit: {}\tAverage Fit: {}\tHighest Fit: {}",
+		println!("SA - Gen {}: Lowest Fit: {}\tAverage Fit: {}\tHighest Fit: {}",
 			self.data.gen,
 			self.data.generations[self.data.gen].creatures[gen_size - 1].fitness,
 			self.data.generations[self.data.gen].fitness_average(),
@@ -30,7 +30,7 @@ impl OptimisationMethod for HillClimbing {
 
 		let time_start = time::precise_time_ns() / 10_000;
 
-		// Do Hill Climbing Stuff here.
+		// Do Simulated Annealing Stuff here.
 		// for creature in &mut self.data.generations[self.data.gen].creatures {
 
 		// }

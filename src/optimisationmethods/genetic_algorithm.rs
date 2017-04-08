@@ -2,6 +2,11 @@ use population::Population;
 use creature::{self, Creature, Node, Muscle};
 use optimisationmethods::{OptimisationMethod, OpMethodData};
 use rand::{Rng, StdRng};
+use time;
+
+pub const SELECTION_SIZE: usize = 8;
+pub const MUTABILITY_RATE: f32 = 0.1;
+pub const PROB_NODE_REMOVE: f32 = 5.0; // will be 1 / x
 
 pub struct GeneticAlgorithm {
 	pub data: OpMethodData
@@ -15,43 +20,67 @@ impl GeneticAlgorithm {
 	}
 
 	fn selection (&self, rng: &mut StdRng) -> &Creature {
-		let selection_size = 10;
-		let mut buffer: Vec<&Creature> = Vec::with_capacity(selection_size);
+		let mut selection: Vec<&Creature> = Vec::with_capacity(SELECTION_SIZE);
 
-		for _ in 0..selection_size {
+		for _ in 0 .. SELECTION_SIZE {
 			let idx = rng.gen_range(0, self.data.generations[self.data.gen].creatures.len());
-			buffer.push(&self.data.generations[self.data.gen].creatures[idx]);
+			selection.push(&self.data.generations[self.data.gen].creatures[idx]);
 		}
 
-		buffer.iter().max().unwrap()
+		selection.iter().max().unwrap()
 	}
 
-	fn mutate (creature: &Creature, rng: &mut StdRng, rate: f32) -> Creature {
+	fn mutate (creature: &Creature, rng: &mut StdRng) -> Creature {
 		use conrod::utils::clamp;
+
+		let rate = MUTABILITY_RATE;
 
 		// Start by cloning the original creature so we can modify the values of the new one
 		let mut new_creature = creature.clone();
 		let node_len = creature.nodes.len();
 
+		new_creature.reset_position();
+
 		// For each node in the creature
 		for node in &mut new_creature.nodes {
 			// Modify the values of each property by the specified rate, but still making sure
 			//   they are within the bounds of the original creature specifications.
-			node.start_x = clamp(node.start_x + rng.gen_range(-rate, rate), creature::BOUNDS_NODE_X.start, creature::BOUNDS_NODE_X.end);
-			node.start_y = clamp(node.start_y + rng.gen_range(-rate, rate), creature::BOUNDS_NODE_Y.start, creature::BOUNDS_NODE_Y.end);
-			node.friction = clamp(node.friction + rng.gen_range(-rate, rate), creature::BOUNDS_NODE_FRICTION.start, creature::BOUNDS_NODE_FRICTION.end);
+			node.start_x = clamp(node.start_x + rng.gen_range(-rate * 10.0, rate * 10.0),
+				creature::BOUNDS_NODE_X.start,
+				creature::BOUNDS_NODE_X.end
+			);
+			node.start_y = clamp(node.start_y + rng.gen_range(-rate * 10.0, rate * 10.0),
+				creature::BOUNDS_NODE_Y.start,
+				creature::BOUNDS_NODE_Y.end
+			);
+			node.friction = clamp(node.friction + rng.gen_range(-rate, rate),
+				creature::BOUNDS_NODE_FRICTION.start,
+				creature::BOUNDS_NODE_FRICTION.end
+			);
 		}
 
-		new_creature.reset_position();
 
 		// Do the same process as above by for the muscles.
 		for muscle in &mut new_creature.muscles {
-			muscle.strength = clamp(muscle.strength + rng.gen_range(-rate, rate), creature::BOUNDS_MUSCLE_STRENGTH.start, creature::BOUNDS_MUSCLE_STRENGTH.end);
+			muscle.strength = clamp(muscle.strength + rng.gen_range(-rate, rate),
+				creature::BOUNDS_MUSCLE_STRENGTH.start,
+				creature::BOUNDS_MUSCLE_STRENGTH.end
+			);
+
 			muscle.len = new_creature.nodes[muscle.nodes.0].distance(&new_creature.nodes[muscle.nodes.1]);
 			muscle.len_min = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.start;
 			muscle.len_max = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.end;
-			muscle.time_extended = clamp(muscle.time_extended + rng.gen_range(-rate * 3.0, rate * 3.0) as u32, creature::BOUNDS_MUSCLE_TIME_EXTENDED.start, creature::BOUNDS_MUSCLE_TIME_EXTENDED.end);
-			muscle.time_contracted = clamp(muscle.time_contracted + rng.gen_range(-rate * 3.0, rate * 3.0) as u32, creature::BOUNDS_MUSCLE_TIME_CONTRACTED.start, creature::BOUNDS_MUSCLE_TIME_CONTRACTED.end);
+
+			muscle.time_extended = clamp(
+				(muscle.time_extended as f32 + rng.gen_range(-rate * 10.0, rate * 10.0) as f32) as u32,
+				creature::BOUNDS_MUSCLE_TIME_EXTENDED.start,
+				creature::BOUNDS_MUSCLE_TIME_EXTENDED.end
+			);
+			muscle.time_contracted = clamp(
+				(muscle.time_contracted as f32 + rng.gen_range(-rate * 10.0, rate * 10.0) as f32) as u32,
+				creature::BOUNDS_MUSCLE_TIME_CONTRACTED.start,
+				creature::BOUNDS_MUSCLE_TIME_CONTRACTED.end
+			);
 		}
 
 		// Make sure any nodes and muscles we've mutated/crossed over did not
@@ -95,6 +124,11 @@ impl GeneticAlgorithm {
 			}
 		}).collect::<Vec<Node>>();
 
+		if rng.gen::<f32>() * PROB_NODE_REMOVE <= 1.0 && child.nodes.len() as u8 > creature::BOUNDS_NODE_COUNT.start {
+			let node = rng.gen_range(0, child.nodes.len());
+			child.nodes.remove(node);
+		}
+
 		// Merge muscles
 		len = creature_a.muscles.len();
 
@@ -127,17 +161,17 @@ impl GeneticAlgorithm {
 
 impl OptimisationMethod for GeneticAlgorithm {
 	fn generation_single(&mut self, rng: &mut StdRng) {
-		// Before generating a new population we must first calculate the fitness of
-		//   each creature in a population.
-		self.data.generations[self.data.gen].calculate_fitness();
 		let gen_size = self.data.generations[self.data.gen].creatures.len();
 		let mut new_population = Population::empty(gen_size);
 
-		println!("Lowest Fit: {}\tAverage Fit: {}\tHighest Fit: {}",
-			self.data.generations[self.data.gen].weakest().fitness,
+		println!("GA - Gen {}: Lowest Fit: {}\tAverage Fit: {}\tHighest Fit: {}",
+			self.data.gen,
+			self.data.generations[self.data.gen].creatures[gen_size - 1].fitness,
 			self.data.generations[self.data.gen].fitness_average(),
-			self.data.generations[self.data.gen].fittest().fitness
+			self.data.generations[self.data.gen].creatures[0].fitness
 		);
+
+		let time_start = time::precise_time_ns() / 10_000;
 
 		// Loop until we reach the size of a population
 		for _ in 0 .. gen_size {
@@ -149,28 +183,59 @@ impl OptimisationMethod for GeneticAlgorithm {
 			let mut child = GeneticAlgorithm::crossover(creature_a, creature_b, rng);
 
 			// Mutate the child ever so slightly so it's not just the same as the parents
-			child = GeneticAlgorithm::mutate(&child, rng, 0.25);
+			child = GeneticAlgorithm::mutate(&child, rng);
+
+			// Now just make sure there are no muscles creating a cycle in the graph
+			child.muscles = Creature::check_colliding_muscles(&child.muscles);
 
 			// Finally add the child to the population of child creatures
 			new_population.creatures.push(child);
 		}
 
+		let time_end = time::precise_time_ns() / 10_000;
+
+		// After generating a new population we must calculate the fitness of each creature in
+		//   a population.
+		new_population.calculate_fitness();
+
 		// After having created the new population, sort the current population by fittest, add
 		//   the new population to the optimisation method, and increase the generation number
-		self.data.generations[self.data.gen].sort_by_fittest();
 		self.data.generations.push(new_population);
+		self.data.gen_time.push(time_end - time_start);
 		self.data.gen += 1;
 	}
 
-	fn creature_get_fittest (&self, gen: usize) -> Creature {
-		self.data.generations[gen].fittest().clone()
+	fn creature_get_fittest (&self, gen: usize) -> &Creature {
+		&self.data.generations[gen].fittest()
 	}
 
 	fn creature_get (&mut self, gen: usize, idx: usize) -> &mut Creature {
 		&mut self.data.generations[gen].creatures[idx]
 	}
 
-	fn get_data(&mut self) -> &mut OpMethodData {
+	fn get_data_mut(&mut self) -> &mut OpMethodData {
 		&mut self.data
+	}
+	fn get_data(&self) -> &OpMethodData {
+		&self.data
+	}
+}
+
+mod tests {
+
+	#[test]
+	fn genalg_fitness() {
+		unimplemented!();
+
+		// use population::Population;
+		// use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
+		// use optimisationmethods::OptimisationMethod;
+
+		// let mut rng = ::tests::init();
+		// let pop = Population::new(1000, &mut rng);
+		// let genalg = GeneticAlgorithm::new(pop);
+		// let data = genalg.get_data();
+		// genalg.generation_single(&mut rng);
+		// let fitness_average_start = data.
 	}
 }

@@ -11,11 +11,11 @@ use piston_window::{ellipse, line, Context, Graphics};
 ///     any more and it's going to behave like a big mess.
 pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 7;
 pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
-pub const BOUNDS_NODE_Y: Range<f32> = -256.0 .. 0.0;
+pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 256.0;
 pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.0 .. 1.0;
-pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 0.8 .. 4.0;
-pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 20 .. 80;
-pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 20 .. 80;
+pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 2.0 .. 9.0;
+pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 40 .. 120;
+pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 40 .. 120;
 
 pub const BOUNDS_MUSCLE_LENGTH: Range<f32> = 0.9 .. 1.25;
 pub const NODE_RADIUS: f32 = 16.0;
@@ -87,12 +87,13 @@ pub struct NodePair(pub usize, pub usize);
 #[derive(Clone)]
 pub struct Muscle {
 	pub nodes: NodePair,
-	pub strength: f32,       // Evolution property
-	pub len: f32,            // Evolution property
-	pub len_max: f32,        // Evolution property
-	pub len_min: f32,        // Evolution property
-	pub time_extended: u32,  // Evolution property
-	pub time_contracted: u32 // Evolution property
+	pub strength: f32,        // Evolution property
+	pub len: f32,             // Evolution property
+	pub len_max: f32,         // Evolution property
+	pub len_min: f32,         // Evolution property
+	pub time_extended: u32,   // Evolution property
+	pub time_contracted: u32, // Evolution property
+	pub contracted: bool
 }
 
 impl Creature {
@@ -125,6 +126,7 @@ impl Creature {
 		}).collect::<Vec<Muscle>>();
 
 		Creature::check_lonely_nodes(&nodes, &mut muscles, rng);
+		muscles = Creature::check_colliding_muscles(&muscles);
 
 		// Finally, return the creature to be added to the population
 		Creature {
@@ -165,17 +167,24 @@ impl Creature {
 	}
 
 	pub fn add_muscle_index(idx: usize, nodes: &Vec<Node>, rng: &mut StdRng) -> Muscle {
+		let mut index = idx;
 		let mut idx_other;
 
 		// Make sure the other node is not pointing to the same node as itself
 		//   before adding the muscle.
 		loop {
 			idx_other = rng.gen_range(0, nodes.len());
-			if idx_other != idx { break; }
+			if idx_other != index { break; }
 		}
 
-		let nodepair = NodePair(idx, idx_other);
-		let len = nodes[idx].distance(&nodes[idx_other]);
+		if idx_other < index {
+			::std::mem::swap(&mut index, &mut idx_other);
+		}
+
+		let nodepair = NodePair(index, idx_other);
+		let len = nodes[index].distance(&nodes[idx_other]);
+
+		// println!("{} {}", index, idx_other);
 
 		Muscle {
 			nodes: nodepair,
@@ -184,7 +193,8 @@ impl Creature {
 			len_min: len * BOUNDS_MUSCLE_LENGTH.start,
 			len_max: len * BOUNDS_MUSCLE_LENGTH.end,
 			time_extended: BOUNDS_MUSCLE_TIME_EXTENDED.gen(rng),
-			time_contracted: BOUNDS_MUSCLE_TIME_CONTRACTED.gen(rng)
+			time_contracted: BOUNDS_MUSCLE_TIME_CONTRACTED.gen(rng),
+			contracted: false
 		}
 	}
 
@@ -202,6 +212,30 @@ impl Creature {
 		}
 	}
 
+	pub fn check_colliding_muscles(muscles: &Vec<Muscle>) -> Vec<Muscle> {
+		// In order to remove duplicate nodes, we first sort them in order of
+		//   lowest node A then lowest node B.
+		//   eg. (0, 3),
+		//       (0, 4),
+		//       (1, 2),
+		//       (1, 3),
+		//       (2, 3)
+		//   Then remove any in order that have both the same nodes on either side
+
+		let mut new_muscles = muscles.clone();
+
+		new_muscles.sort_by(|a, b| {
+			match a.nodes.0.cmp(&b.nodes.0) {
+				Ordering::Equal => a.nodes.1.cmp(&b.nodes.1),
+				other => other,
+			}
+		});
+
+		new_muscles.dedup_by(|a, b| a.nodes.0 == b.nodes.0 && a.nodes.1 == b.nodes.1);
+
+		new_muscles
+	}
+
 	pub fn reset_position(&mut self) {
 		for node in &mut self.nodes {
 			node.x = node.start_x;
@@ -212,7 +246,10 @@ impl Creature {
 	}
 
 	pub fn calculate_fitness(&mut self) {
+		self.fitness = self.fitness();
+	}
 
+	pub fn fitness(&self) -> f32 {
 		let mut fitness = 0.0;
 		let node_len = self.nodes.len();
 
@@ -220,33 +257,42 @@ impl Creature {
 			fitness += node.x;
 		}
 
-		self.fitness = fitness / node_len as f32;
+		(fitness / node_len as f32) - (BOUNDS_NODE_X.end / 2.0)
 	}
 
 	/// Draws a single creature to the screen
-	pub fn draw<G>(&mut self, x: f64, y: f64, c: Context, g: &mut G) where G: Graphics {
+	pub fn draw<G>(&self, x: f64, y: f64, scale: f64, c: Context, g: &mut G) where G: Graphics {
+
+		fn lerp(v0: f32, v1: f32, t: f32) -> f32 {
+			v0 * (1.0 - t) + v1 * t
+		}
+
 		// Draw every muscle
 		for muscle in &self.muscles {
+
+			let mut radius = 12.0 * scale;
+			if muscle.contracted { radius -= 6.0 * scale; }
+
 			// Get the pair of nodes for this specific muscle
 			let ref nodes = self.get_nodes(&muscle.nodes);
 
 			// Generate the colour from it using the muscle's strength
 			// Get the two node positions to draw the line between
 			let col = [0.0, 0.0, 0.0, muscle.strength / BOUNDS_MUSCLE_STRENGTH.end];
-			let coords = [nodes.0.x as f64 + x, nodes.0.y as f64 + y, nodes.1.x as f64 + x, nodes.1.y as f64 + y];
+			let coords = [(nodes.0.x as f64) * scale + x, (nodes.0.y as f64) * scale + y, (nodes.1.x as f64) * scale + x, (nodes.1.y as f64) * scale + y];
 
 			// Draw the line to the screen
-			line(col, 8.0, coords, c.transform, g);
+			line(col, radius, coords, c.transform, g);
 		}
 
 		// Draw every node
 		for node in &self.nodes {
-			let radius: f64 = NODE_RADIUS as f64;
+			let radius: f64 = NODE_RADIUS as f64 * scale;
 			// Set the colour of the node based on its friction
 			// Make the bounds of the ellipse centered on the node position, rather than
 			//   off by a few pixels
-			let col: [f32; 4] = [node.friction, 0.0, 0.0, 1.0];
-			let rect: [f64; 4] = [node.x as f64 - radius + x, node.y as f64 - radius + y, (radius * 2.0), (radius * 2.0)];
+			let col: [f32; 4] = [1.0 - node.friction, 0.0, 0.0, 1.0];
+			let rect: [f64; 4] = [(node.x as f64 - radius) * scale + x, (node.y as f64 - radius) * scale + y, (radius * 2.0) * scale, (radius * 2.0) * scale];
 
 			ellipse(col, rect, c.transform, g);
 		}
@@ -274,5 +320,30 @@ impl Muscle {
 			new_muscle.nodes.1 = rng.gen_range(0, max);
 		}
 		new_muscle
+	}
+}
+
+mod tests {
+
+	/// Make sure a single created creature has properties within the specified bounds
+	#[test]
+	fn creature_create_bounds() {
+		use creature::{self, Creature};
+
+		let mut rng = ::tests::init();
+		let creature = Creature::new(&mut rng);
+
+		assert!((creature.nodes.len() < creature::BOUNDS_NODE_COUNT.end as usize) && (creature.nodes.len() >= creature::BOUNDS_NODE_COUNT.start as usize));
+
+		for node in creature.nodes {
+			assert!((node.x >= creature::BOUNDS_NODE_X.start) && (node.x < creature::BOUNDS_NODE_X.end));
+			assert!((node.y >= creature::BOUNDS_NODE_Y.start) && (node.y < creature::BOUNDS_NODE_Y.end));
+			assert!((node.friction >= creature::BOUNDS_NODE_FRICTION.start) && (node.friction < creature::BOUNDS_NODE_FRICTION.end));
+		}
+		for muscle in creature.muscles {
+			assert!((muscle.strength >= creature::BOUNDS_MUSCLE_STRENGTH.start) && (muscle.strength < creature::BOUNDS_MUSCLE_STRENGTH.end));
+			assert!((muscle.time_extended >= creature::BOUNDS_MUSCLE_TIME_EXTENDED.start) && (muscle.time_extended < creature::BOUNDS_MUSCLE_TIME_EXTENDED.end));
+			assert!((muscle.time_contracted >= creature::BOUNDS_MUSCLE_TIME_CONTRACTED.start) && (muscle.time_contracted < creature::BOUNDS_MUSCLE_TIME_CONTRACTED.end));
+		}
 	}
 }

@@ -10,15 +10,22 @@ pub struct Population {
 impl Population {
 
 	/// Creates a new population with a specified size
-	pub fn new(pop_size: u32, rng: &mut StdRng) -> Population {
-		// Generate a population with a specified size
+	pub fn new(pop_size: usize, rng: &mut StdRng) -> Population {
+		// 1: Generate a population with a specified size
 		let creatures = (0 .. pop_size).map(|_| {
 			Creature::new(rng)
 		}).collect::<Vec<Creature>>();
 
-		Population {
+		// 2: Create the population struct
+		let mut population = Population {
 			creatures: creatures
-		}
+		};
+
+		// 3: Calculate the new population's fitness
+		population.calculate_fitness();
+
+		// 4: Return the new population
+		population
 	}
 
 	pub fn empty(pop_size: usize) -> Population {
@@ -28,7 +35,8 @@ impl Population {
 	}
 
 	pub fn calculate_fitness(&mut self) {
-		let physics = Physics::full_simulation_population(self);
+		Physics::full_simulation_population(self);
+		self.sort_by_fittest();
 	}
 
 	/// Returns the fittest creature in the population

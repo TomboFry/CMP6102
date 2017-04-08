@@ -18,6 +18,7 @@ impl Physics {
 	}
 
 	pub fn full_simulation_creature(creature: &mut Creature) {
+		creature.reset_position();
 		for step in 0 .. SIM_LENGTH {
 			Physics::simulation_step(step, creature);
 		}
@@ -35,8 +36,10 @@ impl Physics {
 
 			if step < t_con {
 				target = creature.muscles[idx].len_max;
+				creature.muscles[idx].contracted = false;
 			} else {
 				target = creature.muscles[idx].len_min;
+				creature.muscles[idx].contracted = true;
 			}
 
 			Physics::force_muscle(creature, idx, target);
@@ -62,10 +65,6 @@ impl Physics {
 
 		creature.nodes[creature.muscles[idx].nodes.1].vx -= angle.cos() * force * creature.muscles[idx].strength;
 		creature.nodes[creature.muscles[idx].nodes.1].vy -= angle.sin() * force * creature.muscles[idx].strength;
-
-		// if idx == 0 {
-		// 	println!("D: {}\tT:{}\tF:{}\t:VD:{}", distance, target, force, angle.cos() * force * creature.muscles[idx].strength);
-		// }
 	}
 
 	pub fn force_node(node: &mut Node) {
@@ -78,9 +77,9 @@ impl Physics {
 	pub fn wall_collision(node: &mut Node) {
 		let y = node.y + creature::NODE_RADIUS;
 		// Y position in the world is 0, so anything above that means it's colliding
-		if y >= 0.0 {
+		if y >= 256.0 {
 			// So the node doesn't get actually drawn in the ground
-			node.y = -creature::NODE_RADIUS;
+			node.y = 256.0 - creature::NODE_RADIUS;
 			// Reset the velocity of Y as we're against the ground
 			node.vy = 0.0;
 			node.x -= node.vx * node.friction;

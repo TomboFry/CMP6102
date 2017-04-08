@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+#[macro_use]
+extern crate conrod;
 extern crate piston_window;
 extern crate piston;
-#[macro_use] extern crate conrod;
 extern crate find_folder;
 extern crate rand;
+extern crate time;
 
 mod gui;
 mod app;
@@ -115,18 +117,18 @@ fn main () {
 			fn texture_from_image<T>(img: &T) -> &T { img };
 
 			match app.gui_state {
-				GUIState::Spectate => {
-					if app.optmethods.len() > 0 {
-						let mut creature = app.optmethods[0].creature_get(app.spectate_generation, app.spectate_creature);
-						creature.draw(0.0, app.height as f64 - 32.0, context, graphics);
-						rectangle([0.25, 1.0, 0.2, 1.0], [0.0, app.height as f64 - 32.0, app.width as f64, 32.0], context.transform, graphics);
-						if app.draw_simulation && app.simulation_frame < 900 {
-							Physics::simulation_step(app.simulation_frame, &mut creature);
-							app.simulation_frame += 1;
-						}
+			GUIState::Spectate => {
+				if app.optmethods.len() > 0 {
+					let mut creature = app.optmethods[app.spectate_method].creature_get(app.spectate_generation, app.spectate_creature);
+					creature.draw((app.width as f64 / 2.0) - creature.fitness() as f64 - 128.0, app.height as f64 - 288.0, 1.0, context, graphics);
+					rectangle([0.25, 1.0, 0.2, 1.0], [0.0, app.height as f64 - 32.0, app.width as f64, 32.0], context.transform, graphics);
+					if app.draw_simulation && app.simulation_frame < physics::SIM_LENGTH {
+						Physics::simulation_step(app.simulation_frame, &mut creature);
+						app.simulation_frame += 1;
 					}
-				},
-				_ => {},
+				}
+			},
+			_ => {}
 			}
 
 			// Usually, we call ui.draw_if_changed() and draw its primitives as such.
@@ -139,6 +141,38 @@ fn main () {
 			                                          &image_map,
 			                                          cache_queued_glyphs,
 			                                          texture_from_image);
+
+			match app.gui_state {
+				GUIState::Generations => {
+					for mtd in 0 .. app.optmethods.len() {
+						let x = 472.0;
+						let y = 116.0;
+						let w = 140.0;
+						let s = w / 256.0;
+						let yw = w + 32.0;
+						let padding = 4.0;
+						rectangle([1.0, 1.0, 1.0, 1.0],
+						          [x - padding, y - padding + (mtd as f64 * yw), w + (padding * 2.0), w + (padding * 2.0)],
+						          context.transform, graphics);
+						let data = app.optmethods[mtd].get_data();
+						let ref creature = data.generations[app.spectate_generation].creatures[data.spectate_creature];
+						creature.draw(x, y + (mtd as f64 * yw), s, context, graphics);
+					}
+				},
+				_ => {}
+			}
 		});
+	}
+}
+
+mod tests {
+	use rand::StdRng;
+
+	pub fn init() -> StdRng {
+		if let Ok(rng) = StdRng::new() {
+			rng
+		} else {
+			panic!("Could not create RNG");
+		}
 	}
 }
