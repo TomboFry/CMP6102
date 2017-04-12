@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![recursion_limit="128"]
 
-#[macro_use]
-extern crate conrod;
+#[macro_use] extern crate conrod;
 extern crate piston_window;
 extern crate piston;
 extern crate find_folder;
@@ -20,13 +20,12 @@ mod physics;
 use piston_window::*;
 use piston_window::texture::UpdateTexture;
 use gui::GUIState;
-use physics::Physics;
+use app::UIData;
 
-fn main () {
-
+fn main() {
 	// Initialise the app data
-	//                             Window / Menu Title                        W     H    FPS
-	let mut app = app::UIData::new("Optimisation Method Creature Generation", 1280, 720, 60);
+	//                        Window / Menu Title                        Windowed     Fullscreen    FPS
+	let mut app = UIData::new("Optimisation Method Creature Generation", (1280, 720), (1920, 1080), 60);
 
 	// Create the window
 	let mut window : PistonWindow =
@@ -34,12 +33,13 @@ fn main () {
 		.exit_on_esc(true)
 		.opengl(OpenGL::V3_2)
 		.vsync(true)
+		.fullscreen(app.fullscreen)
 		.build()
 		.expect("Error creating window");
 
 	// Ensure the program runs at 60fps to not overload the system
-	window.set_ups(app.fps);
-	window.set_max_fps(app.fps);
+	window.set_ups(app.fps as u64);
+	window.set_max_fps(app.fps as u64);
 
 	// Create the UI with the same width and height as the window
 	let mut ui = conrod::UiBuilder::new(
@@ -53,16 +53,13 @@ fn main () {
 	let assets = find_folder::Search::KidsThenParents(3, 3).for_folder("assets").expect("Error finding folder");
 
 	let fonts = app::Fonts {
-		regular: ui.fonts.insert_from_file(assets.join("cprime.ttf")).expect("Error loading font"),
-		bold: ui.fonts.insert_from_file(assets.join("cprime-bold.ttf")).expect("Error loading font"),
-		italic: ui.fonts.insert_from_file(assets.join("cprime-italic.ttf")).expect("Error loading font"),
-		bold_italic: ui.fonts.insert_from_file(assets.join("cprime-bold-italic.ttf")).expect("Error loading font")
+		regular: ui.fonts.insert_from_file(assets.join("NotoSansUI-Regular.ttf")).expect("Error loading font"),
+		bold: ui.fonts.insert_from_file(assets.join("NotoSansUI-Bold.ttf")).expect("Error loading font"),
+		italic: ui.fonts.insert_from_file(assets.join("NotoSansUI-Italic.ttf")).expect("Error loading font"),
+		bold_italic: ui.fonts.insert_from_file(assets.join("NotoSansUI-BoldItalic.ttf")).expect("Error loading font")
 	};
 
 	ui.theme.font_id = Some(fonts.regular);
-
-	// Piston's Cache
-	// let mut glyph_cache_piston = Glyphs::new(assets.join("cprime.ttf"), window.factory.clone()).unwrap();
 
 	// Conrod's Cache
 	let image_map = conrod::image::Map::new();
@@ -101,6 +98,27 @@ fn main () {
 				CONROD UI WIDGETS
 			*/
 
+			match app.gui_state {
+			GUIState::Spectate => {
+				let mut creature = app.optmethods[app.spectate_method].creature_get(app.spectate_generation, app.spectate_creature);
+				let x = creature.fitness() as f64;
+				let y = 84.0;
+
+				for idx in 0 .. 2 {
+					let xx = -(x % app.width as f64) + (idx * app.width) as f64;
+					rectangle([0.0, 0.0, 0.0, 0.35], [xx, 0.0, app.width as f64 / 2.0, app.height as f64], context.transform, graphics);
+				}
+
+				creature.draw((app.width as f64 / 2.0) - x - 128.0, app.height as f64 - 256.0 - y, 1.0, context, graphics);
+				rectangle([0.15, 0.9, 0.1, 1.0], [0.0, app.height as f64 - y, app.width as f64, y], context.transform, graphics);
+				if app.draw_simulation && app.simulation_frame < physics::SIM_LENGTH {
+					physics::simulation_step(app.simulation_frame, &mut creature);
+					app.simulation_frame += 1;
+				}
+			},
+			_ => {}
+			}
+
 			// A function used for caching glyphs to the texture cache.
 			let cache_queued_glyphs = |graphics: &mut G2d, cache: &mut G2dTexture,
 			                           rect: conrod::text::rt::Rect<u32>, app: &[u8]|
@@ -116,21 +134,6 @@ fn main () {
 			};
 			fn texture_from_image<T>(img: &T) -> &T { img };
 
-			match app.gui_state {
-			GUIState::Spectate => {
-				if app.optmethods.len() > 0 {
-					let mut creature = app.optmethods[app.spectate_method].creature_get(app.spectate_generation, app.spectate_creature);
-					creature.draw((app.width as f64 / 2.0) - creature.fitness() as f64 - 128.0, app.height as f64 - 288.0, 1.0, context, graphics);
-					rectangle([0.25, 1.0, 0.2, 1.0], [0.0, app.height as f64 - 32.0, app.width as f64, 32.0], context.transform, graphics);
-					if app.draw_simulation && app.simulation_frame < physics::SIM_LENGTH {
-						Physics::simulation_step(app.simulation_frame, &mut creature);
-						app.simulation_frame += 1;
-					}
-				}
-			},
-			_ => {}
-			}
-
 			// Usually, we call ui.draw_if_changed() and draw its primitives as such.
 			// However, this results in the UI being drawn over by piston when there
 			// is nothing to change, so we must draw *every frame* using ui.draw()
@@ -143,13 +146,15 @@ fn main () {
 			                                          texture_from_image);
 
 			match app.gui_state {
-				GUIState::Generations => {
+			GUIState::Generations => {
+				if !app.modal_visible {
+					let method_height = (app.height as f64 - (gui::MARGIN * 2.0) - 112.0) / app.optmethods.len() as f64;
 					for mtd in 0 .. app.optmethods.len() {
-						let x = 472.0;
-						let y = 116.0;
+						let x = 344.0;
+						let y = gui::MARGIN + 64.0;
 						let w = 140.0;
-						let s = w / 256.0;
-						let yw = w + 32.0;
+						let s = w / creature::BOUNDS_NODE_X.end as f64;
+						let yw = method_height;
 						let padding = 4.0;
 						rectangle([1.0, 1.0, 1.0, 1.0],
 						          [x - padding, y - padding + (mtd as f64 * yw), w + (padding * 2.0), w + (padding * 2.0)],
@@ -158,8 +163,9 @@ fn main () {
 						let ref creature = data.generations[app.spectate_generation].creatures[data.spectate_creature];
 						creature.draw(x, y + (mtd as f64 * yw), s, context, graphics);
 					}
-				},
-				_ => {}
+				}
+			},
+			_ => {}
 			}
 		});
 	}

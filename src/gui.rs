@@ -3,6 +3,7 @@ use conrod::color::Color;
 use conrod::{widget, UiCell, Colorable, Positionable,
 	         Widget, Sizeable, Labelable, Borderable};
 use app::{UIData, Fonts};
+use physics::{self, lerp};
 
 widget_ids! {
 	pub struct Ids {
@@ -20,6 +21,7 @@ widget_ids! {
 		options_title,
 		options_btn_back,
 		options_btn_modal,
+		options_toggle_fullscreen,
 
 		// New Test Menu Widgets
 		new_canvas,
@@ -35,30 +37,58 @@ widget_ids! {
 		gen_canvas,
 		gen_title,
 		gen_btn_back,
-		gen_graph_ga,
-		gen_graph_hc,
-		gen_graph_sa,
+		gen_btn_save,
+
+		gen_rect_ga,
+		gen_rect_sa,
+		gen_rect_hc,
+
+		gen_grid_ga,
+		gen_grid_sa,
+		gen_grid_hc,
+
+		gen_graph_ga_max,
+		gen_graph_sa_max,
+		gen_graph_hc_max,
+
+		gen_graph_ga_avg,
+		gen_graph_sa_avg,
+		gen_graph_hc_avg,
+
+		gen_graph_ga_min,
+		gen_graph_sa_min,
+		gen_graph_hc_min,
+
+		gen_line_ga,
+		gen_line_sa,
+		gen_line_hc,
+
+		gen_circle_ga,
+		gen_circle_sa,
+		gen_circle_hc,
+
 		gen_slider_ga,
-		gen_slider_hc,
 		gen_slider_sa,
+		gen_slider_hc,
+
 		gen_btn_ga,
-		gen_btn_hc,
 		gen_btn_sa,
+		gen_btn_hc,
+
 		gen_txt_ga,
-		gen_txt_hc,
 		gen_txt_sa,
+		gen_txt_hc,
+
 		gen_btn_gen_single,
-		gen_btn_gen_ten,
-		gen_btn_spectate,
+		gen_slider_gen_do,
+		gen_btn_gen_do,
 		gen_slider_gen,
 
 		// Spectate Single Creature Widgets
-		dc_btn,
-		dc_highest,
-		dc_creature,
 		dc_text,
 		dc_reset,
 		dc_back,
+		dc_physics,
 
 		// Modal Popup Dialogue Widgets
 		modal_canvas_overlay,
@@ -78,8 +108,8 @@ pub enum GUIState {
 	Spectate
 }
 
-const MARGIN: f64 = 48.0;
-const SPACING: f64 = 32.0;
+pub const MARGIN: f64 = 48.0;
+pub const SPACING: f64 = 32.0;
 
 macro_rules! rgb {
 	($r: expr, $g: expr, $b: expr) => {
@@ -105,7 +135,7 @@ pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	}
 
 	if app.modal_visible {
-		draw_modal(ui, ids, app, fonts)
+		draw_modal(ui, ids, app, fonts);
 	}
 }
 
@@ -124,7 +154,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	widget::Text::new(app.title)
 		.color(COL_TXT)
-		.font_size(30)
+		.font_size(32)
 		.font_id(fonts.bold)
 		.w(canvas_width - (MARGIN * 2.0))
 		.line_spacing(8.0)
@@ -136,6 +166,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label_color(COL_LBL)
 		.label("New Test")
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.menu_title, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -149,6 +180,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label_color(COL_LBL)
 		.label("Continue Previous Test")
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.menu_btn_start, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -163,6 +195,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label("Options")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.menu_btn_continue, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -176,6 +209,7 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label("Exit")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.menu_btn_options, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -201,7 +235,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	// Canvas Title
 	widget::Text::new("New Test")
 		.color(COL_TXT)
-		.font_size(30)
+		.font_size(32)
 		.font_id(fonts.bold)
 		.w(canvas_width - (MARGIN * 2.0))
 		.line_spacing(8.0)
@@ -223,6 +257,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	for use_ga in widget::Toggle::new(use_ga)
 		.label(use_ga_title)
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.new_title, SPACING)
@@ -237,6 +272,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	for use_sa in widget::Toggle::new(use_sa)
 		.label(use_sa_title)
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.new_toggle_ga, SPACING)
@@ -251,6 +287,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	for use_hc in widget::Toggle::new(use_hc)
 		.label(use_hc_title)
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.new_toggle_sa, SPACING)
@@ -263,9 +300,10 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	// Set the size of each generation (100-1000)
 	let gensize = app.generation_size as f64;
-	for value in widget::Slider::new(gensize, 10.0, 1000.0)
+	for value in widget::Slider::new(gensize, 100.0, 2000.0)
 		.label(&*format!("Generation Size: {} creatures", gensize))
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.new_toggle_hc, SPACING)
@@ -281,6 +319,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN_GO)
 		.label("Start")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.new_slider_gensize, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -295,6 +334,7 @@ fn menu_new_test (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label("< Back")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.mid_left()
 		.down_from(ids.new_btn_start, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
@@ -318,7 +358,7 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	widget::Text::new("Options")
 		.color(COL_TXT)
-		.font_size(30)
+		.font_size(32)
 		.font_id(fonts.bold)
 		.w(canvas_width - (MARGIN * 2.0))
 		.line_spacing(8.0)
@@ -326,36 +366,62 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.top_left_of(ids.options_canvas)
 		.set(ids.options_title, ui);
 
-	for _press in widget::Button::new()
-		.color(COL_BTN)
-		.label("< Back")
+	// Fullscreen Toggle
+	let fullscreen = app.fullscreen;
+	let fullscreen_txt = if fullscreen { "Fullscreen: On" } else { "Fullscreen: Off" };
+	for value in widget::Toggle::new(fullscreen)
+		.label(fullscreen_txt)
 		.label_color(COL_LBL)
+		.label_font_size(20)
+		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.options_title, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
 		.border(0.0)
-		.set(ids.options_btn_back, ui)
+		.set(ids.options_toggle_fullscreen, ui)
 	{
-		app.gui_state = GUIState::Menu;
+		app.fullscreen = value;
+		app.changes = true;
 	}
 
 	for _press in widget::Button::new()
 		.color(COL_BTN)
 		.label("Modal")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.mid_left()
-		.down_from(ids.options_btn_back, SPACING)
+		.down_from(ids.options_toggle_fullscreen, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
 		.border(0.0)
 		.set(ids.options_btn_modal, ui)
 	{
-		app.modal_new("Testing the modal dialogue box".to_string(), "This is an example of a really long string. It should hopefully wrap over multiple lines and demonstrate that it actually does work!".to_string(), Some("Say Whaaaat?!".to_string()), None);
+		app.modal_new(
+			"Testing the modal dialogue box".to_string(),
+			"This is an example of a really long string. It should hopefully wrap over multiple lines and demonstrate that it actually does work!".to_string(),
+			Some("Say Whaaaat?!".to_string()), None
+		);
+	}
+
+	for _press in widget::Button::new()
+		.color(COL_BTN)
+		.label("< Back")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.mid_left()
+		.down_from(ids.options_btn_modal, SPACING)
+		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
+		.border(0.0)
+		.set(ids.options_btn_back, ui)
+	{
+		app.settings_save();
 	}
 }
 
 fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	let canvas_width = app.width as f64;
 	let canvas_height = app.height as f64;
+
+	let btn_width = 256.0;
 
 	widget::Canvas::new()
 		.color(COL_BG)
@@ -366,7 +432,7 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 
 	widget::Text::new("Creature Evolution")
 		.color(COL_TXT)
-		.font_size(30)
+		.font_size(32)
 		.font_id(fonts.bold)
 		.w(canvas_width - (MARGIN * 2.0))
 		.line_spacing(8.0)
@@ -376,62 +442,79 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 
 	for _press in widget::Button::new()
 		.label("<")
-		.w_h(SPACING, SPACING)
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(48.0, 32.0)
 		.color(COL_BTN_STOP)
 		.top_left_with_margins_on(ids.gen_canvas, -MARGIN, -MARGIN)
 		.border(0.0)
-		.label_color(COL_LBL)
 		.set(ids.gen_btn_back, ui)
 	{
 		app.gui_state = GUIState::NewTest;
 		app.reset_optmethods();
 	}
+	for _press in widget::Button::new()
+		.label("Save")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(96.0, 32.0)
+		.color(COL_BTN)
+		.right_from(ids.gen_btn_back, 16.0)
+		.border(0.0)
+		.set(ids.gen_btn_save, ui)
+	{
+		// app.save_progress();
+	}
 
 	for _press in widget::Button::new()
-		.label("Do Single Generation")
-		.w_h(384.0, 48.0)
+		.label("Do Generation")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(btn_width, 48.0)
 		.color(COL_BTN)
 		.mid_left()
 		.down_from(ids.gen_title, SPACING)
 		.border(0.0)
-		.label_color(COL_LBL)
 		.set(ids.gen_btn_gen_single, ui)
 	{
-		app.generation_single();
+		app.do_generation(1);
 	}
 
-	for _press in widget::Button::new()
-		.label("Do 10 Generations")
-		.w_h(384.0, 48.0)
+	let gen_do = app.gen_do;
+	for value in widget::Slider::new(gen_do as f32, 1.0, 100.0)
 		.color(COL_BTN)
-		.mid_left()
+		.label(&*format!("Do {} gens", gen_do))
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.border(0.0)
 		.down_from(ids.gen_btn_gen_single, SPACING)
-		.border(0.0)
-		.label_color(COL_LBL)
-		.set(ids.gen_btn_gen_ten, ui)
+		.w_h(btn_width, 48.0)
+		.set(ids.gen_slider_gen_do, ui)
 	{
-		for _ in 0 .. 10 {
-			app.generation_single();
-		}
+		app.gen_do = value as usize;
 	}
 
 	for _press in widget::Button::new()
-		.label("View Fittest")
-		.w_h(384.0, 48.0)
+		.label("Go")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(btn_width, 48.0)
 		.color(COL_BTN)
 		.mid_left()
-		.down_from(ids.gen_btn_gen_ten, SPACING)
+		.down_from(ids.gen_slider_gen_do, 2.0)
 		.border(0.0)
-		.label_color(COL_LBL)
-		.set(ids.gen_btn_spectate, ui)
+		.set(ids.gen_btn_gen_do, ui)
 	{
-		// Stuff
-		app.gui_state = GUIState::Spectate;
 
-		let gen = app.spectate_generation;
-		app.set_creature(0, 0, gen);
+		if gen_do > 20 {
+			app.modal_new(
+				"This could take a while...".to_string(),
+				"You are about to process more than 20 generations in a single click, so be aware this may take a long time to process.".to_string(),
+				None, None
+			);
+		}
 
-		app.draw_simulation = true;
+		app.do_generation(gen_do);
 	}
 
 	// Set the size of each generation (100-1000)
@@ -439,9 +522,10 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 	for value in widget::Slider::new(generation, 0.0, app.total_generations as f64)
 		.label(&*format!("Generation {}", generation))
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.color(COL_BTN)
-		.down_from(ids.gen_btn_gen_ten, SPACING)
-		.w_h(app.width as f64 - (MARGIN * 2.0) - 384.0 - SPACING, 48.0)
+		.down_from(ids.gen_btn_gen_do, SPACING)
+		.w_h(app.width as f64 - (MARGIN * 2.0) - btn_width - SPACING, 48.0)
 		.border(0.0)
 		.bottom_right()
 		.set(ids.gen_slider_gen, ui)
@@ -449,22 +533,30 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 		app.spectate_generation = value as usize;
 	}
 
-	let ids_slider = vec![ids.gen_slider_ga, ids.gen_slider_hc, ids.gen_slider_sa];
-	let ids_btn = vec![ids.gen_btn_ga, ids.gen_btn_hc, ids.gen_btn_sa];
-	let ids_txt = vec![ids.gen_txt_ga, ids.gen_txt_hc, ids.gen_txt_sa];
+	let ids_rect = vec![ids.gen_rect_ga, ids.gen_rect_sa, ids.gen_rect_hc];
+	let ids_grid = vec![ids.gen_grid_ga, ids.gen_grid_sa, ids.gen_grid_hc];
+	let ids_slider = vec![ids.gen_slider_ga, ids.gen_slider_sa, ids.gen_slider_hc];
+	let ids_btn = vec![ids.gen_btn_ga, ids.gen_btn_sa, ids.gen_btn_hc];
+	let ids_txt = vec![ids.gen_txt_ga, ids.gen_txt_sa, ids.gen_txt_hc];
+	let ids_graph_max = vec![ids.gen_graph_ga_max, ids.gen_graph_sa_max, ids.gen_graph_hc_max];
+	let ids_graph_avg = vec![ids.gen_graph_ga_avg, ids.gen_graph_sa_avg, ids.gen_graph_hc_avg];
+	let ids_graph_min = vec![ids.gen_graph_ga_min, ids.gen_graph_sa_min, ids.gen_graph_hc_min];
+	let ids_line = vec![ids.gen_line_ga, ids.gen_line_sa, ids.gen_line_hc];
+	let ids_circle = vec![ids.gen_circle_ga, ids.gen_circle_sa, ids.gen_circle_hc];
+
+	let method_height = (app.height as f64 - (MARGIN * 2.0) - 112.0) / app.optmethods.len() as f64;
 
 	for mtd in 0 .. app.optmethods.len() {
 		// Set the size of each generation (100-1000)
 		let data = app.optmethods[mtd].get_data_mut();
-		let y = (app.height as f64 / 2.0) - 110.0 - (mtd as f64 * 172.0);
-		let x = (app.width as f64 / 2.0) - 472.0;
 		for value in widget::Slider::new((app.generation_size as f64 - data.spectate_creature as f64), 1.0, app.generation_size as f64)
 			.label(&*format!("Crt: {}", (app.generation_size - data.spectate_creature)))
 			.label_color(COL_LBL)
+			.label_font_size(20)
 			.color(COL_BTN)
-			.top_left_with_margins_on(ids.gen_canvas, 96.0 + (mtd as f64 * 172.0), 612.0)
-			.w_h(140.0, 32.0)
-			.border(0.0)
+			.top_left_with_margins_on(ids.gen_canvas, 64.0 + (mtd as f64 * method_height), 468.0)
+			.w_h(256.0, 32.0)
+			.border(1.0)
 			.set(ids_slider[mtd], ui)
 		{
 			let new_value = app.generation_size - value as usize;
@@ -474,11 +566,12 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 
 		for _press in widget::Button::new()
 			.label("View")
-			.w_h(140.0, 32.0)
+			.label_color(COL_LBL)
+			.label_font_size(20)
+			.w_h(256.0, 32.0)
 			.color(COL_BTN)
 			.down_from(ids_slider[mtd], 2.0)
 			.border(0.0)
-			.label_color(COL_LBL)
 			.set(ids_btn[mtd], ui)
 		{
 			// Stuff
@@ -487,84 +580,101 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 			app.draw_simulation = true;
 		}
 
-		widget::Text::new(&*format!("Average time: {}\nFitness: {}", data.average_gen_time() / 10000, data.generations[app.spectate_generation].creatures[data.spectate_creature].fitness as i16))
+		widget::Text::new(&*format!("Avg. time: {}\nFitness: {}",
+				data.average_gen_time(),
+				data.generations[app.spectate_generation].creatures[data.spectate_creature].fitness as i16)
+			)
 			.color(COL_TXT)
 			.font_size(18)
-			.font_id(fonts.regular)
-			.w(512.0)
+			.font_id(fonts.bold)
+			.w(256.0)
 			.wrap_by_word()
-			.right_from(ids_slider[mtd], 8.0)
+			.line_spacing(8.0)
+			.down_from(ids_btn[mtd], 8.0)
 			.set(ids_txt[mtd], ui);
+
+		let graph_width = app.width as f64 - 848.0;
+		let graph_fittest = data.generations_get_fittest();
+		let graph_weakest = data.generations_get_weakest();
+		let graph_height = method_height - 24.0;
+
+		let graph_max = |x| {
+			let mut xx = data.creature_get_fittest(x as usize).fitness;
+			if (x as usize) < data.gen {
+				xx = lerp(xx, data.creature_get_fittest(x as usize + 1).fitness, x % 1.0);
+			}
+			xx
+		};
+
+		let graph_avg = |x| {
+			let mut xx = data.creature_get_average(x as usize);
+			if (x as usize) < data.gen {
+				xx = lerp(xx, data.creature_get_average(x as usize + 1), x % 1.0);
+			}
+			xx
+		};
+
+		let graph_min = |x| {
+			let mut xx = data.creature_get_weakest(x as usize).fitness;
+			if (x as usize) < data.gen {
+				xx = lerp(xx, data.creature_get_weakest(x as usize + 1).fitness, x % 1.0);
+			}
+			xx
+		};
+
+		let down = |y| ((y - graph_weakest) / (graph_weakest - graph_fittest)) as f64 * graph_height as f64;
+
+		widget::Rectangle::fill_with([graph_width, graph_height], COL_LBL)
+			.right_from(ids_slider[mtd], SPACING)
+			.set(ids_rect[mtd], ui);
+
+		widget::Line::centred([0.0, 0.0], [graph_width, 0.0])
+			.color(COL_TXT)
+			.right_from(ids_slider[mtd], SPACING)
+			.down(down(0.0))
+			.set(ids_grid[mtd], ui);
+
+		widget::PlotPath::new(0.0, data.gen as f32, graph_weakest, graph_fittest, graph_max)
+			.w_h(graph_width, graph_height)
+			.color(COL_TXT)
+			.right_from(ids_slider[mtd], SPACING)
+			.set(ids_graph_max[mtd], ui);
+
+		widget::PlotPath::new(0.0, data.gen as f32, graph_weakest, graph_fittest, graph_avg)
+			.w_h(graph_width, graph_height)
+			.color(COL_TXT)
+			.right_from(ids_slider[mtd], SPACING)
+			.set(ids_graph_avg[mtd], ui);
+
+		widget::PlotPath::new(0.0, data.gen as f32, graph_weakest, graph_fittest, graph_min)
+			.w_h(graph_width, graph_height)
+			.color(COL_TXT)
+			.right_from(ids_slider[mtd], SPACING)
+			.set(ids_graph_min[mtd], ui);
+
+		if data.gen > 0 {
+			widget::Line::centred([0.0, 0.0], [0.0, graph_height])
+				.color(COL_BTN_STOP)
+				.thickness(2.0)
+				.right_from(ids_slider[mtd], ((app.spectate_generation as f64 / data.gen as f64) * graph_width) + SPACING)
+				.set(ids_line[mtd], ui);
+
+			widget::Circle::fill_with(3.0, COL_BTN_STOP)
+				.right_from(ids_slider[mtd], ((app.spectate_generation as f64 / data.gen as f64) * graph_width) - 2.0 + SPACING)
+				.down(down(data.generations[app.spectate_generation].creatures[data.spectate_creature].fitness) - 2.0)
+				.set(ids_circle[mtd], ui);
+		}
 	}
 }
 
 fn menu_spectate (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
-	let btn_width: f64 = 512.0;
-
-	// for _press in widget::Button::new()
-	// 	.color(COL_BTN)
-	// 	.label(&*format!("Do Generation (gen {})", app.spectate_generation))
-	// 	.label_color(COL_LBL)
-	// 	.top_left()
-	// 	.w_h(btn_width, 48.0)
-	// 	.border(0.0)
-	// 	.set(ids.dc_btn, ui)
-	// {
-	// 	app.generation_single();
-	// }
-
-	// // if app.spectate_generation > 0 {
-	// 	for _press in widget::Button::new()
-	// 		.color(COL_BTN)
-	// 		.label("Do 100 generations")
-	// 		.label_color(COL_LBL)
-	// 		.top_left()
-	// 		.right_from(ids.dc_btn, SPACING / 4.0)
-	// 		.w_h(btn_width, 48.0)
-	// 		.border(0.0)
-	// 		.set(ids.dc_highest, ui)
-	// 	{
-	// 		for _ in 0 .. 100 {
-	// 			app.generation_single();
-	// 		}
-	// 	}
-	// // }
-
-	// for _press in widget::Button::new()
-	// 	.color(COL_BTN)
-	// 	.label(&*format!("Different Creature ({}, {})", app.spectate_creature, app.current_fitness as isize))
-	// 	.label_color(COL_LBL)
-	// 	.top_left()
-	// 	.down_from(ids.dc_btn, SPACING / 4.0)
-	// 	.w_h(btn_width, 48.0)
-	// 	.border(0.0)
-	// 	.set(ids.dc_creature, ui)
-	// {
-	// 	app.set_creature();
-	// }
-
-	// // Pick the creature
-	// let creature = app.spectate_creature as f64;
-	// for value in widget::Slider::new(creature, 0.0, app.generation_size as f64 - 1.0)
-	// 	.color(COL_BTN)
-	// 	.label(&*format!("Creature {} (fit: {})", creature, app.current_fitness))
-	// 	.label_color(COL_LBL)
-	// 	.top_left()
-	// 	.down_from(ids.dc_btn, SPACING / 4.0)
-	// 	.w_h(app.generation_size as f64 - 1.0, 40.0)
-	// 	.border(0.0)
-	// 	.set(ids.dc_creature, ui)
-	// {
-	// 	let gen = app.spectate_generation;
-	// 	app.set_creature(value as usize, gen);
-	// }
-
 	for _press in widget::Button::new()
 		.color(COL_BTN_STOP)
 		.label("<")
 		.label_color(COL_LBL)
+		.label_font_size(20)
 		.top_left()
-		.w_h(48.0, 48.0)
+		.w_h(48.0, 32.0)
 		.border(0.0)
 		.set(ids.dc_back, ui)
 	{
@@ -579,20 +689,35 @@ fn menu_spectate (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.color(COL_BTN)
 		.label("Reset Simulation")
 		.label_color(COL_LBL)
-		.right_from(ids.dc_back, SPACING)
-		.w_h(btn_width, 48.0)
+		.label_font_size(20)
+		.right_from(ids.dc_back, 16.0)
+		.w_h(192.0, 32.0)
 		.border(0.0)
 		.set(ids.dc_reset, ui)
 	{
 		app.reset_simulation();
 	}
 
-	widget::Text::new(&*format!("{}\n{}", app.optmethods[app.spectate_method].get_data().generations[app.spectate_generation].creatures[app.spectate_creature].fitness(), app.simulation_frame))
-		.font_size(16)
-		.font_id(fonts.regular)
+	widget::Text::new(&*format!("{}", app.optmethods[app.spectate_method].get_data().generations[app.spectate_generation].creatures[app.spectate_creature].fitness() as i32))
+		.font_size(32)
+		.font_id(fonts.bold)
+		.center_justify()
 		.w_h(512.0, 48.0)
-		.down_from(ids.dc_back, SPACING)
+		.mid_bottom_with_margin(14.0)
 		.set(ids.dc_text, ui);
+
+	for value in widget::Slider::new(app.simulation_frame as f32, 0.0, physics::SIM_LENGTH as f32 - 1.0)
+		.label(&*format!("{} / {}s ({}%)", app.simulation_frame / app.fps, physics::SIM_LENGTH / app.fps, (app.simulation_frame as f64 * 100.0 / physics::SIM_LENGTH as f64) as u32))
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.color(COL_BTN)
+		.w_h(256.0, 42.0)
+		.bottom_left_with_margin(21.0)
+		.border(0.0)
+		.set(ids.dc_physics, ui)
+	{
+
+	}
 }
 
 fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
@@ -624,7 +749,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			.color(COL_TXT)
 			.mid_top_of(ids.modal_canvas_bg)
 			.font_id(fonts.bold)
-			.font_size(24)
+			.font_size(32)
 			.w(modal_width - (MARGIN * 2.0))
 			.set(ids.modal_title, ui);
 
@@ -633,7 +758,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			.line_spacing(8.0)
 			.down_from(ids.modal_title, SPACING)
 			.font_id(fonts.regular)
-			.font_size(18)
+			.font_size(22)
 			.w(modal_width - (MARGIN * 2.0))
 			.set(ids.modal_message, ui);
 
@@ -641,6 +766,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			.color(COL_BTN_GO)
 			.label(&modal.button_a_label)
 			.label_color(COL_LBL)
+			.label_font_size(20)
 			.bottom_left_of(ids.modal_canvas_bg)
 			.w_h((modal.button_a_label.len() as f64 * 14.0) + 32.0, 48.0)
 			.border(0.0)
@@ -653,6 +779,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			.color(COL_BTN_STOP)
 			.label(&modal.button_b_label)
 			.label_color(COL_LBL)
+			.label_font_size(20)
 			.right_from(ids.modal_button_a, SPACING)
 			.w_h((modal.button_b_label.len() as f64 * 14.0) + 32.0, 48.0)
 			.border(0.0)

@@ -10,6 +10,8 @@ use optimisationmethods::OptimisationMethod;
 use optimisationmethods::hill_climbing::HillClimbing;
 use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
 use optimisationmethods::simulated_annealing::SimulatedAnnealing;
+use std::fs::File;
+use std::io::prelude::*;
 // use creature::Creature;
 
 pub struct UIData {
@@ -20,7 +22,10 @@ pub struct UIData {
 	pub mouse_left_down: bool, pub mouse_right_down: bool,
 
 	// Window dimensions and speed to run at
-	pub width: u32, pub height: u32, pub fps: u64,
+	pub width: u32, pub height: u32, pub fps: u32,
+
+	// Whether the window runs in complete fullscreen mode or not
+	pub fullscreen: bool, pub changes: bool,
 
 	// Window title (and main menu title)
 	pub title: &'static str,
@@ -45,6 +50,7 @@ pub struct UIData {
 	pub draw_simulation: bool,
 	pub simulation_frame: u32,
 	pub current_fitness: f32,
+	pub gen_do: usize,
 	pub optmethods: Vec<Box<OptimisationMethod>>,
 
 	// Modal information
@@ -53,7 +59,20 @@ pub struct UIData {
 }
 
 impl UIData {
-	pub fn new(title: &'static str, win_w: u32, win_h: u32, frames: u64) -> UIData {
+	pub fn new(title: &'static str, win_wh: (u32, u32), fs_wh: (u32, u32), frames: u32) -> Self {
+		let file_open = File::open("settings.txt");
+		let mut fullscreen = false;
+		match file_open {
+			Ok(mut file) => {
+				let mut contents = String::new();
+				file.read_to_string(&mut contents).expect("Although the file exists, could not read contents of settings.txt");
+				fullscreen = if contents == "true" { true } else { false };
+			},
+			_ => {},
+		}
+
+		let (width, height) = if fullscreen { fs_wh } else { win_wh };
+
 		match StdRng::new() {
 			// Very unlikely to fail but just in case it does, this will close the program before it even really begins
 			Err (err) => {
@@ -62,7 +81,8 @@ impl UIData {
 			Ok(val) => UIData {
 				mouse_x: 0.0, mouse_y: 0.0,
 				mouse_left_down: false, mouse_right_down: false,
-				width: win_w, height: win_h, fps: frames,
+				width: width, height: height, fps: frames,
+				fullscreen: fullscreen, changes: false,
 				title: title,
 				gui_state: GUIState::Menu,
 				rng: val,
@@ -77,6 +97,7 @@ impl UIData {
 				draw_simulation: false,
 				simulation_frame: 0,
 				current_fitness: 0.0,
+				gen_do: 1,
 				optmethods: Vec::with_capacity(3),
 				modal_visible: false,
 				modal_struct: None
@@ -85,18 +106,9 @@ impl UIData {
 	}
 
 	pub fn modal_new(&mut self, title: String, message: String, btn_a_label: Option<String>, btn_b_label: Option<String>) {
-		let mut button_a_label = "Okay".to_string();
-		let mut button_b_label = "Close".to_string();
+		let modal = Modal::new(title, message, btn_a_label, btn_b_label);
 
-		if let Some(lbl_a) = btn_a_label { button_a_label = lbl_a; }
-		if let Some(lbl_b) = btn_b_label { button_b_label = lbl_b; }
-
-		self.modal_struct = Some(Modal {
-			title: title,
-			message: message,
-			button_a_label: button_a_label,
-			button_b_label: button_b_label
-		});
+		self.modal_struct = Some(modal);
 		self.modal_visible = true;
 	}
 
@@ -146,8 +158,27 @@ impl UIData {
 		};
 	}
 
-	pub fn init_tests(&mut self) {
+	pub fn settings_save(&mut self) {
+		if self.changes {
+			use std::process::Command;
 
+			self.changes = false;
+
+			let mut file = File::create("settings.txt").unwrap();
+			file.write_all(if self.fullscreen { b"true" } else { b"false" }).unwrap();
+			self.modal_new("Restart Required".to_string(), "In order to change to fullscreen, a restart of this application is required.".to_string(), None, None);
+			#[cfg(unix)] use std::os::unix::process::CommandExt;
+			#[cfg(unix)] Command::new("/proc/self/exe").exec();
+		} else {
+			self.gui_state = GUIState::Menu;
+		}
+	}
+
+	pub fn save_results(&self) {
+
+	}
+
+	pub fn init_tests(&mut self) {
 		if !self.use_genetic_algorithm && !self.use_hill_climbing && !self.use_simulated_annealing {
 			return self.modal_new("Error".to_string(), "Please select at least one optimisation method".to_string(), None, None);
 		}
@@ -169,14 +200,18 @@ impl UIData {
 		self.draw_simulation = false;
 	}
 
-	pub fn generation_single(&mut self) {
-		for method in &mut self.optmethods {
-			method.generation_single(&mut self.rng);
+	pub fn do_generation(&mut self, num: usize) {
+		for _ in 0 .. num {
+			for method in 0 .. self.optmethods.len() {
+				match self.optmethods[method].generation_single(&mut self.rng) {
+					Err(err) => self.modal_new(err.0, err.1, None, None),
+					Ok(_) => {}
+				}
+			}
 		}
 
-		// self.spectate_creature = 0;
-		self.spectate_generation += 1;
-		self.total_generations += 1;
+		self.spectate_generation += num;
+		self.total_generations += num;
 		self.simulation_frame = 0;
 	}
 

@@ -1,5 +1,5 @@
 use creature::Creature;
-use physics::Physics;
+use physics;
 use rand::StdRng;
 
 #[derive(Clone)]
@@ -35,7 +35,7 @@ impl Population {
 	}
 
 	pub fn calculate_fitness(&mut self) {
-		Physics::full_simulation_population(self);
+		physics::full_simulation_population(self);
 		self.sort_by_fittest();
 	}
 

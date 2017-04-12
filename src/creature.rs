@@ -11,13 +11,13 @@ use piston_window::{ellipse, line, Context, Graphics};
 ///     any more and it's going to behave like a big mess.
 pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 7;
 pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
-pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 256.0;
-pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.0 .. 1.0;
-pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 2.0 .. 9.0;
-pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 40 .. 120;
-pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 40 .. 120;
+pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 248.0;
+pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.05 .. 0.95;
+pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 1.0 .. 10.0;
+pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 10 .. 120;
+pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 10 .. 120;
 
-pub const BOUNDS_MUSCLE_LENGTH: Range<f32> = 0.9 .. 1.25;
+pub const BOUNDS_MUSCLE_LENGTH: Range<f32> = 0.85 .. 1.25;
 pub const NODE_RADIUS: f32 = 16.0;
 
 /// Add "gen" function to range, which will return a random value between its lower and upper bounds
@@ -108,16 +108,7 @@ impl Creature {
 		// Create and add nodes to the create, and collect them into a vector
 		//   for the muscles to use
 		let nodes: Vec<Node> = (0 .. num_nodes).map(|_| {
-			// Set the node's properties to random values within the bounds.
-			let x = BOUNDS_NODE_X.gen(rng);
-			let y = BOUNDS_NODE_Y.gen(rng);
-			let friction = BOUNDS_NODE_FRICTION.gen(rng);
-
-			Node {
-				x: x, y: y,
-				start_x: x, start_y: y,
-				friction: friction,
-				vx: 0.0, vy: 0.0 }
+			Creature::add_node_random(rng)
 		}).collect::<Vec<Node>>();
 
 		// Add a muscle for at least each node.
@@ -150,6 +141,19 @@ impl Creature {
 		self.nodes.push(node);
 		// self.nodes.last().expect("Error getting last node").clone()
 		self.nodes.len()
+	}
+
+	pub fn add_node_random(rng: &mut StdRng) -> Node {
+		// Set the node's properties to random values within the bounds.
+		let x = BOUNDS_NODE_X.gen(rng);
+		let y = BOUNDS_NODE_Y.gen(rng);
+		let friction = BOUNDS_NODE_FRICTION.gen(rng);
+
+		Node {
+			x: x, y: y,
+			start_x: x, start_y: y,
+			friction: friction,
+			vx: 0.0, vy: 0.0 }
 	}
 
 	/// Return the two nodes relating to a NodePair in a muscle.
@@ -262,11 +266,6 @@ impl Creature {
 
 	/// Draws a single creature to the screen
 	pub fn draw<G>(&self, x: f64, y: f64, scale: f64, c: Context, g: &mut G) where G: Graphics {
-
-		fn lerp(v0: f32, v1: f32, t: f32) -> f32 {
-			v0 * (1.0 - t) + v1 * t
-		}
-
 		// Draw every muscle
 		for muscle in &self.muscles {
 
@@ -320,6 +319,16 @@ impl Muscle {
 			new_muscle.nodes.1 = rng.gen_range(0, max);
 		}
 		new_muscle
+	}
+
+	/// Return a muscle based on an existing one, only to make sure the nodes are actually in range
+	pub fn range_mut(&mut self, max: usize, rng: &mut StdRng) {
+		if self.nodes.0 >= max {
+			self.nodes.0 = rng.gen_range(0, max);
+		}
+		if self.nodes.1 >= max {
+			self.nodes.1 = rng.gen_range(0, max);
+		}
 	}
 }
 
