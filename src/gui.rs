@@ -83,6 +83,8 @@ widget_ids! {
 		gen_slider_gen_do,
 		gen_btn_gen_do,
 		gen_slider_gen,
+		gen_load_canvas,
+		gen_load_text,
 
 		// Spectate Single Creature Widgets
 		dc_text,
@@ -477,11 +479,11 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 		.border(0.0)
 		.set(ids.gen_btn_gen_single, ui)
 	{
-		app.do_generation(1);
+		app.process_generations = 1;
 	}
 
 	let gen_do = app.gen_do;
-	for value in widget::Slider::new(gen_do as f32, 1.0, 100.0)
+	for value in widget::Slider::new(gen_do as f32, 1.0, 255.0)
 		.color(COL_BTN)
 		.label(&*format!("Do {} gens", gen_do))
 		.label_color(COL_LBL)
@@ -514,7 +516,7 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 			);
 		}
 
-		app.do_generation(gen_do);
+		app.process_generations = gen_do;
 	}
 
 	// Set the size of each generation (100-1000)
@@ -792,5 +794,22 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		app.modal_close();
 	} else if action == 2 {
 		app.modal_close();
+	}
+
+	if !app.modal_visible && app.process_generations > 0 {
+		widget::Canvas::new()
+			.w_h(320.0, 128.0)
+			.middle()
+			.color(COL_BTN)
+			.border(0.0)
+			.set(ids.gen_load_canvas, ui);
+
+		widget::Text::new("Generating... Please wait.")
+			.w_h(320.0, 64.0)
+			.font_size(32)
+			.middle()
+			.center_justify()
+			.color(COL_LBL)
+			.set(ids.gen_load_text, ui);
 	}
 }

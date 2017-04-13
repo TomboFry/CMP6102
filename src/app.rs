@@ -49,6 +49,7 @@ pub struct UIData {
 
 	pub draw_simulation: bool,
 	pub simulation_frame: u32,
+	pub process_generations: usize,
 	pub current_fitness: f32,
 	pub gen_do: usize,
 	pub optmethods: Vec<Box<OptimisationMethod>>,
@@ -75,7 +76,7 @@ impl UIData {
 
 		match StdRng::new() {
 			// Very unlikely to fail but just in case it does, this will close the program before it even really begins
-			Err (err) => {
+			Err(err) => {
 				panic!("{}", err);
 			},
 			Ok(val) => UIData {
@@ -96,6 +97,7 @@ impl UIData {
 				spectate_creature: 0,
 				draw_simulation: false,
 				simulation_frame: 0,
+				process_generations: 0,
 				current_fitness: 0.0,
 				gen_do: 1,
 				optmethods: Vec::with_capacity(3),
@@ -106,9 +108,7 @@ impl UIData {
 	}
 
 	pub fn modal_new(&mut self, title: String, message: String, btn_a_label: Option<String>, btn_b_label: Option<String>) {
-		let modal = Modal::new(title, message, btn_a_label, btn_b_label);
-
-		self.modal_struct = Some(modal);
+		self.modal_struct = Some(Modal::new(title, message, btn_a_label, btn_b_label));
 		self.modal_visible = true;
 	}
 
@@ -120,7 +120,7 @@ impl UIData {
 	pub fn event(&mut self, event: &Input) {
 		match event {
 			// Mouse and Keyboard Down
-			&Input::Press(button)  => {
+			&Input::Press(button) => {
 				if button == Button::Mouse(MouseButton::Left) {
 					self.mouse_left_down = true;
 				} else if button == Button::Mouse(MouseButton::Right) {
@@ -156,17 +156,22 @@ impl UIData {
 
 			_ => {}
 		};
+
+		if !self.modal_visible && self.process_generations > 0 {
+			self.do_generation(1);
+			self.process_generations -= 1;
+		}
 	}
 
 	pub fn settings_save(&mut self) {
 		if self.changes {
-			use std::process::Command;
-
 			self.changes = false;
 
 			let mut file = File::create("settings.txt").unwrap();
 			file.write_all(if self.fullscreen { b"true" } else { b"false" }).unwrap();
 			self.modal_new("Restart Required".to_string(), "In order to change to fullscreen, a restart of this application is required.".to_string(), None, None);
+
+			#[cfg(unix)] use std::process::Command;
 			#[cfg(unix)] use std::os::unix::process::CommandExt;
 			#[cfg(unix)] Command::new("/proc/self/exe").exec();
 		} else {
@@ -174,9 +179,7 @@ impl UIData {
 		}
 	}
 
-	pub fn save_results(&self) {
-
-	}
+	pub fn save_results(&self) {}
 
 	pub fn init_tests(&mut self) {
 		if !self.use_genetic_algorithm && !self.use_hill_climbing && !self.use_simulated_annealing {

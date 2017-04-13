@@ -157,8 +157,8 @@ fn main() {
 						let yw = method_height;
 						let padding = 4.0;
 						rectangle([1.0, 1.0, 1.0, 1.0],
-						          [x - padding, y - padding + (mtd as f64 * yw), w + (padding * 2.0), w + (padding * 2.0)],
-						          context.transform, graphics);
+							[x - padding, y - padding + (mtd as f64 * yw), w + (padding * 2.0), w + (padding * 2.0)],
+							context.transform, graphics);
 						let data = app.optmethods[mtd].get_data();
 						let ref creature = data.generations[app.spectate_generation].creatures[data.spectate_creature];
 						creature.draw(x, y + (mtd as f64 * yw), s, context, graphics);
