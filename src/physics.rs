@@ -1,10 +1,9 @@
 use creature::{self, Creature, Node};
 use population::Population;
 
-pub const GRAVITY: f32 = 0.22;
+pub const GRAVITY: f32 = 0.25;
 pub const RESISTANCE: f32 = 0.98;
 pub const SIM_LENGTH: u32 = 900; // 60 frames per second for 15 seconds
-
 
 pub fn full_simulation_population(population: &mut Population) {
 	for creature in &mut population.creatures {

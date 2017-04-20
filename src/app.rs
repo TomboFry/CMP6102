@@ -49,7 +49,7 @@ pub struct UIData {
 
 	pub draw_simulation: bool,
 	pub simulation_frame: u32,
-	pub process_generations: usize,
+	pub process_generations: usize, pub process_generations_total: usize,
 	pub current_fitness: f32,
 	pub gen_do: usize,
 	pub optmethods: Vec<Box<OptimisationMethod>>,
@@ -97,7 +97,7 @@ impl UIData {
 				spectate_creature: 0,
 				draw_simulation: false,
 				simulation_frame: 0,
-				process_generations: 0,
+				process_generations: 0, process_generations_total: 0,
 				current_fitness: 0.0,
 				gen_do: 1,
 				optmethods: Vec::with_capacity(3),
@@ -158,7 +158,7 @@ impl UIData {
 		};
 
 		if !self.modal_visible && self.process_generations > 0 {
-			self.do_generation(1);
+			self.do_generation();
 			self.process_generations -= 1;
 		}
 	}
@@ -178,8 +178,6 @@ impl UIData {
 			self.gui_state = GUIState::Menu;
 		}
 	}
-
-	pub fn save_results(&self) {}
 
 	pub fn init_tests(&mut self) {
 		if !self.use_genetic_algorithm && !self.use_hill_climbing && !self.use_simulated_annealing {
@@ -203,18 +201,21 @@ impl UIData {
 		self.draw_simulation = false;
 	}
 
-	pub fn do_generation(&mut self, num: usize) {
-		for _ in 0 .. num {
-			for method in 0 .. self.optmethods.len() {
-				match self.optmethods[method].generation_single(&mut self.rng) {
-					Err(err) => self.modal_new(err.0, err.1, None, None),
-					Ok(_) => {}
-				}
+	pub fn do_generations(&mut self, num: usize) {
+		self.process_generations = num;
+		self.process_generations_total = num;
+	}
+
+	pub fn do_generation(&mut self) {
+		for method in 0 .. self.optmethods.len() {
+			match self.optmethods[method].generation_single(&mut self.rng) {
+				Err(err) => self.modal_new(err.0, err.1, None, None),
+				Ok(_) => {}
 			}
 		}
 
-		self.spectate_generation += num;
-		self.total_generations += num;
+		self.spectate_generation += 1;
+		self.total_generations += 1;
 		self.simulation_frame = 0;
 	}
 

@@ -19,7 +19,7 @@ impl GeneticAlgorithm {
 	}
 
 	fn selection (&self, rng: &mut StdRng) -> &Creature {
-		let selection_size = (self.data.generations[self.data.gen].creatures.len() as f64 * 0.04) as usize + 1;
+		let selection_size = (self.data.generations[self.data.gen].creatures.len() as f64 * 0.01) as usize + 1;
 		let mut selection: Vec<&Creature> = Vec::with_capacity(selection_size);
 
 		for _ in 0 .. selection_size {
@@ -105,7 +105,7 @@ impl OptimisationMethod for GeneticAlgorithm {
 			self.data.generations[self.data.gen].creatures[0].fitness
 		);
 
-		let time_start = time::precise_time_ns() / 10_000;
+		let time_start = time::precise_time_ns() / 1_000_000;
 
 		// Loop until we reach the size of a population
 		for _ in 0 .. gen_size {
@@ -128,11 +128,11 @@ impl OptimisationMethod for GeneticAlgorithm {
 			new_population.creatures.push(child);
 		}
 
-		let time_end = time::precise_time_ns() / 10_000;
-
 		// After generating a new population we must calculate the fitness of each creature in
 		//   a population.
 		new_population.calculate_fitness();
+
+		let time_end = time::precise_time_ns() / 1_000_000;
 
 		// After having created the new population, sort the current population by fittest, add
 		//   the new population to the optimisation method, and increase the generation number

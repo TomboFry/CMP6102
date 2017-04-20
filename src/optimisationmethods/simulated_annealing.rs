@@ -5,11 +5,11 @@ use rand::{Rng, StdRng};
 use time;
 use physics;
 
-pub const MUTABILITY_RATE: f32 = 0.4;
+pub const MUTABILITY_RATE: f32 = 1.0;
 pub const PROB_NODE_REMOVE: f32 = 8.0; // will be 1 / x
 pub const TEMP_HIGH: f64 = 100.0;
 pub const TEMP_LOW: f64 = 0.1;
-pub const TEMP_ALPHA: f64 = 0.98;
+pub const TEMP_ALPHA: f64 = 0.99;
 
 pub struct SimulatedAnnealing {
 	pub data: OpMethodData,
@@ -40,9 +40,8 @@ impl OptimisationMethod for SimulatedAnnealing {
 			self.temp
 		);
 
-		let time_start = time::precise_time_ns() / 10_000;
-
 		// SIMULATED ANNEALING MAGIC HAPPENS HERE ONWARDS
+		let time_start = time::precise_time_ns() / 1_000_000;
 
 		self.temp = self.temp * TEMP_ALPHA;
 
@@ -75,12 +74,11 @@ impl OptimisationMethod for SimulatedAnnealing {
 				new_population.creatures.push(creature.clone());
 			}
 		}
+		new_population.sort_by_fittest();
 
 		// SIMULATED ANNEALING MAGIC FINISHES HERE ONWARDS
+		let time_end = time::precise_time_ns() / 1_000_000;
 
-		let time_end = time::precise_time_ns() / 10_000;
-
-		new_population.calculate_fitness();
 
 		// After having created the new population, sort the current population by fittest, add
 		//   the new population to the optimisation method, and increase the generation number

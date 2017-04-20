@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
 #![recursion_limit="128"]
 
 #[macro_use] extern crate conrod;
@@ -147,7 +145,7 @@ fn main() {
 
 			match app.gui_state {
 			GUIState::Generations => {
-				if !app.modal_visible {
+				if !app.modal_visible && app.process_generations == 0 {
 					let method_height = (app.height as f64 - (gui::MARGIN * 2.0) - 112.0) / app.optmethods.len() as f64;
 					for mtd in 0 .. app.optmethods.len() {
 						let x = 344.0;

@@ -69,7 +69,6 @@ impl OpMethodData {
 	pub fn mutate(creature: &Creature, rng: &mut StdRng, rate: f32, node_add: bool, node_remove: bool) -> Creature {
 		// Start by cloning the original creature so we can modify the values of the new one
 		let mut new_creature = creature.clone();
-		let node_len = creature.nodes.len();
 
 		new_creature.reset_position();
 
@@ -110,8 +109,8 @@ impl OpMethodData {
 			muscle.len_min = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.start;
 			muscle.len_max = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.end;
 
-			muscle.time_extended = OpMethodData::mutate_clamp_int(muscle.time_extended, rate, creature::BOUNDS_MUSCLE_TIME_EXTENDED, rng);
-			muscle.time_contracted = OpMethodData::mutate_clamp_int(muscle.time_contracted, rate, creature::BOUNDS_MUSCLE_TIME_CONTRACTED, rng);
+			muscle.time_extended = OpMethodData::mutate_clamp_int(muscle.time_extended, rate * 10.0, creature::BOUNDS_MUSCLE_TIME_EXTENDED, rng);
+			muscle.time_contracted = OpMethodData::mutate_clamp_int(muscle.time_contracted, rate * 10.0, creature::BOUNDS_MUSCLE_TIME_CONTRACTED, rng);
 		}
 
 		// Finally, return the new creature with the modified values.

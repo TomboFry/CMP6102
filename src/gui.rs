@@ -12,7 +12,6 @@ widget_ids! {
 		menu_canvas,
 		menu_title,
 		menu_btn_start,
-		menu_btn_continue,
 		menu_btn_options,
 		menu_btn_exit,
 
@@ -20,7 +19,6 @@ widget_ids! {
 		options_canvas,
 		options_title,
 		options_btn_back,
-		options_btn_modal,
 		options_toggle_fullscreen,
 
 		// New Test Menu Widgets
@@ -37,7 +35,6 @@ widget_ids! {
 		gen_canvas,
 		gen_title,
 		gen_btn_back,
-		gen_btn_save,
 
 		gen_rect_ga,
 		gen_rect_sa,
@@ -83,8 +80,6 @@ widget_ids! {
 		gen_slider_gen_do,
 		gen_btn_gen_do,
 		gen_slider_gen,
-		gen_load_canvas,
-		gen_load_text,
 
 		// Spectate Single Creature Widgets
 		dc_text,
@@ -98,7 +93,13 @@ widget_ids! {
 		modal_title,
 		modal_message,
 		modal_button_a,
-		modal_button_b
+		modal_button_b,
+
+		// Progress Box Widgets
+		progress_overlay,
+		progress_canvas,
+		progress_text,
+		progress_slider
 	}
 }
 
@@ -138,6 +139,11 @@ pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	if app.modal_visible {
 		draw_modal(ui, ids, app, fonts);
+	}
+
+	if !app.modal_visible && app.process_generations > 0 && app.process_generations_total > 10 {
+		let progress = (app.process_generations_total as f32 - app.process_generations as f32) / app.process_generations_total as f32;
+		draw_progress(ui, ids, app, fonts, progress);
 	}
 }
 
@@ -180,26 +186,11 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	for _press in widget::Button::new()
 		.color(COL_BTN)
-		.label_color(COL_LBL)
-		.label("Continue Previous Test")
-		.label_font_size(20)
-		.mid_left()
-		.down_from(ids.menu_btn_start, SPACING)
-		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
-		.border(0.0)
-		.set(ids.menu_btn_continue, ui)
-	{
-		// app.gui_state = GUIState::NewTest;
-		app.modal_new("Not Implemented Yet.".to_string(), "It might be a while".to_string(), None, None);
-	}
-
-	for _press in widget::Button::new()
-		.color(COL_BTN)
 		.label("Options")
 		.label_color(COL_LBL)
 		.label_font_size(20)
 		.mid_left()
-		.down_from(ids.menu_btn_continue, SPACING)
+		.down_from(ids.menu_btn_start, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
 		.border(0.0)
 		.set(ids.menu_btn_options, ui)
@@ -388,29 +379,11 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 
 	for _press in widget::Button::new()
 		.color(COL_BTN)
-		.label("Modal")
-		.label_color(COL_LBL)
-		.label_font_size(20)
-		.mid_left()
-		.down_from(ids.options_toggle_fullscreen, SPACING)
-		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
-		.border(0.0)
-		.set(ids.options_btn_modal, ui)
-	{
-		app.modal_new(
-			"Testing the modal dialogue box".to_string(),
-			"This is an example of a really long string. It should hopefully wrap over multiple lines and demonstrate that it actually does work!".to_string(),
-			Some("Say Whaaaat?!".to_string()), None
-		);
-	}
-
-	for _press in widget::Button::new()
-		.color(COL_BTN)
 		.label("< Back")
 		.label_color(COL_LBL)
 		.label_font_size(20)
 		.mid_left()
-		.down_from(ids.options_btn_modal, SPACING)
+		.down_from(ids.options_toggle_fullscreen, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
 		.border(0.0)
 		.set(ids.options_btn_back, ui)
@@ -455,18 +428,6 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 		app.gui_state = GUIState::NewTest;
 		app.reset_optmethods();
 	}
-	for _press in widget::Button::new()
-		.label("Save")
-		.label_color(COL_LBL)
-		.label_font_size(20)
-		.w_h(96.0, 32.0)
-		.color(COL_BTN)
-		.right_from(ids.gen_btn_back, 16.0)
-		.border(0.0)
-		.set(ids.gen_btn_save, ui)
-	{
-		// app.save_progress();
-	}
 
 	for _press in widget::Button::new()
 		.label("Do Generation")
@@ -479,7 +440,7 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 		.border(0.0)
 		.set(ids.gen_btn_gen_single, ui)
 	{
-		app.process_generations = 1;
+		app.do_generations(1);
 	}
 
 	let gen_do = app.gen_do;
@@ -508,15 +469,15 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 		.set(ids.gen_btn_gen_do, ui)
 	{
 
-		if gen_do > 20 {
+		if gen_do > 10 {
 			app.modal_new(
 				"This could take a while...".to_string(),
-				"You are about to process more than 20 generations in a single click, so be aware this may take a long time to process.".to_string(),
+				"You are about to process more than 10 generations in a single click, so be aware this may take a long time to process.".to_string(),
 				None, None
 			);
 		}
 
-		app.process_generations = gen_do;
+		app.do_generations(gen_do);
 	}
 
 	// Set the size of each generation (100-1000)
@@ -582,7 +543,7 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 			app.draw_simulation = true;
 		}
 
-		widget::Text::new(&*format!("Avg. time: {}\nFitness: {}",
+		widget::Text::new(&*format!("Avg. time: {}ms\nFitness: {}",
 				data.average_gen_time(),
 				data.generations[app.spectate_generation].creatures[data.spectate_creature].fitness as i16)
 			)
@@ -591,7 +552,7 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 			.font_id(fonts.bold)
 			.w(256.0)
 			.wrap_by_word()
-			.line_spacing(8.0)
+			.line_spacing(12.0)
 			.down_from(ids_btn[mtd], 8.0)
 			.set(ids_txt[mtd], ui);
 
@@ -708,7 +669,7 @@ fn menu_spectate (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.mid_bottom_with_margin(14.0)
 		.set(ids.dc_text, ui);
 
-	for value in widget::Slider::new(app.simulation_frame as f32, 0.0, physics::SIM_LENGTH as f32 - 1.0)
+	for _ in widget::Slider::new(app.simulation_frame as f32, 0.0, physics::SIM_LENGTH as f32 - 1.0)
 		.label(&*format!("{} / {}s ({}%)", app.simulation_frame / app.fps, physics::SIM_LENGTH / app.fps, (app.simulation_frame as f64 * 100.0 / physics::SIM_LENGTH as f64) as u32))
 		.label_color(COL_LBL)
 		.label_font_size(20)
@@ -729,8 +690,8 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		let canvas_width = app.width as f64;
 		let canvas_height = app.height as f64;
 
-		let modal_width = (app.width as f64).min(848.0);
-		let modal_height = (app.height as f64).min(480.0);
+		let modal_width = (app.width as f64).min(640.0);
+		let modal_height = (app.height as f64).min(360.0);
 
 		widget::Canvas::new()
 			.rgba(0.0, 0.0, 0.0, 0.75)
@@ -790,26 +751,42 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			action = 2;
 		}
 	}
+
 	if action == 1 {
 		app.modal_close();
 	} else if action == 2 {
 		app.modal_close();
 	}
+}
 
-	if !app.modal_visible && app.process_generations > 0 {
-		widget::Canvas::new()
-			.w_h(320.0, 128.0)
-			.middle()
-			.color(COL_BTN)
-			.border(0.0)
-			.set(ids.gen_load_canvas, ui);
+fn draw_progress (ui: &mut UiCell, ids: &Ids, app: &mut UIData, _: &Fonts, progress: f32) {
+	widget::Canvas::new()
+		.rgba(0.0, 0.0, 0.0, 0.75)
+		.w_h(app.width as f64, app.height as f64)
+		.x_y(0.0, 0.0)
+		.border(0.0)
+		.set(ids.progress_overlay, ui);
 
-		widget::Text::new("Generating... Please wait.")
-			.w_h(320.0, 64.0)
-			.font_size(32)
-			.middle()
-			.center_justify()
-			.color(COL_LBL)
-			.set(ids.gen_load_text, ui);
-	}
+	widget::Canvas::new()
+		.w_h(320.0, 180.0)
+		.middle()
+		.color(COL_LBL)
+		.border(0.0)
+		.set(ids.progress_canvas, ui);
+
+	widget::Slider::new(progress, 0.0, 1.0)
+		.w_h(320.0, 16.0)
+		.down_from(ids.progress_canvas, 0.0)
+		.color(COL_BTN)
+		.border(0.0)
+		.set(ids.progress_slider, ui);
+
+	widget::Text::new("Generating...\nPlease wait.")
+		.w_h(320.0, 72.0)
+		.font_size(32)
+		.line_spacing(4.0)
+		.middle()
+		.center_justify()
+		.color(COL_TXT)
+		.set(ids.progress_text, ui);
 }
