@@ -3,9 +3,6 @@ use std::ops::Range;
 use rand::{Rng, StdRng};
 use rand::distributions::range::SampleRange;
 
-// imports used for drawing a creature
-use piston_window::{ellipse, line, Context, Graphics};
-
 /// Constants to define a creatures lower and upper exclusive bounds.
 /// eg. a creature can have only 2 to 6 nodes. Any less and its useless,
 ///     any more and it's going to behave like a big mess.
@@ -262,39 +259,6 @@ impl Creature {
 		}
 
 		(fitness / node_len as f32) - (BOUNDS_NODE_X.end / 2.0)
-	}
-
-	/// Draws a single creature to the screen
-	pub fn draw<G>(&self, x: f64, y: f64, scale: f64, c: Context, g: &mut G) where G: Graphics {
-		// Draw every muscle
-		for muscle in &self.muscles {
-
-			let mut radius = 12.0 * scale;
-			if muscle.contracted { radius -= 6.0 * scale; }
-
-			// Get the pair of nodes for this specific muscle
-			let ref nodes = self.get_nodes(&muscle.nodes);
-
-			// Generate the colour from it using the muscle's strength
-			// Get the two node positions to draw the line between
-			let col = [0.0, 0.0, 0.0, muscle.strength / BOUNDS_MUSCLE_STRENGTH.end];
-			let coords = [(nodes.0.x as f64) * scale + x, (nodes.0.y as f64) * scale + y, (nodes.1.x as f64) * scale + x, (nodes.1.y as f64) * scale + y];
-
-			// Draw the line to the screen
-			line(col, radius, coords, c.transform, g);
-		}
-
-		// Draw every node
-		for node in &self.nodes {
-			let radius: f64 = NODE_RADIUS as f64 * scale;
-			// Set the colour of the node based on its friction
-			// Make the bounds of the ellipse centered on the node position, rather than
-			//   off by a few pixels
-			let col: [f32; 4] = [1.0 - node.friction, 0.0, 0.0, 1.0];
-			let rect: [f64; 4] = [(node.x as f64 - radius) * scale + x, (node.y as f64 - radius) * scale + y, (radius * 2.0) * scale, (radius * 2.0) * scale];
-
-			ellipse(col, rect, c.transform, g);
-		}
 	}
 }
 

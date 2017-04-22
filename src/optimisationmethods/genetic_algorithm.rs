@@ -2,6 +2,7 @@ use population::Population;
 use creature::{self, Creature, Node, Muscle};
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
 use rand::{Rng, StdRng};
+use std::string::String;
 use time;
 
 pub const MUTABILITY_RATE: f32 = 0.1;
@@ -14,7 +15,7 @@ pub struct GeneticAlgorithm {
 impl GeneticAlgorithm {
 	pub fn new(population: Population) -> Box<GeneticAlgorithm> {
 		Box::new(GeneticAlgorithm {
-			data: OpMethodData::new(vec![population])
+			data: OpMethodData::new(vec![population], "GA".to_string())
 		})
 	}
 

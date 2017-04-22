@@ -2,6 +2,7 @@ use rand::{Rng, StdRng};
 use std::ops::Range;
 use creature::{self, Creature};
 use population::Population;
+use std::string::String;
 
 pub mod genetic_algorithm;
 pub mod hill_climbing;
@@ -13,16 +14,18 @@ pub struct OpMethodData {
 	pub generations: Vec<Population>,
 	pub gen: usize,
 	pub gen_time: Vec<u64>,
-	pub spectate_creature: usize
+	pub spectate_creature: usize,
+	pub title: String
 }
 
 impl OpMethodData {
-	pub fn new(generations: Vec<Population>) -> OpMethodData {
+	pub fn new(generations: Vec<Population>, title: String) -> OpMethodData {
 		OpMethodData {
 			generations: generations,
 			gen: 0,
 			gen_time: Vec::new(),
-			spectate_creature: 0
+			spectate_creature: 0,
+			title: title
 		}
 	}
 
@@ -118,13 +121,11 @@ impl OpMethodData {
 	}
 
 	pub fn mutate_clamp(value: f32, rate: f32, range: Range<f32>, rng: &mut StdRng) -> f32 {
-		use conrod::utils::clamp;
-		clamp(value + rng.gen_range(-rate, rate), range.start, range.end)
+		(value + rng.gen_range(-rate, rate)).max(range.start).min(range.end)
 	}
 
 	pub fn mutate_clamp_int(value: u32, rate: f32, range: Range<u32>, rng: &mut StdRng) -> u32 {
-		use conrod::utils::clamp;
-		clamp((value as i32 + rng.gen_range(-rate, rate) as i32) as u32, range.start, range.end)
+		::std::cmp::max(range.start, ::std::cmp::min((value as i32 + rng.gen_range(-rate, rate) as i32) as u32, range.end))
 	}
 }
 

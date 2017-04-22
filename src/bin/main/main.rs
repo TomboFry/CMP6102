@@ -6,19 +6,18 @@ extern crate piston;
 extern crate find_folder;
 extern crate rand;
 extern crate time;
+extern crate cmp6102;
 
 mod gui;
 mod app;
 mod modal;
-mod creature;
-mod population;
-mod optimisationmethods;
-mod physics;
 
 use piston_window::*;
 use piston_window::texture::UpdateTexture;
 use gui::GUIState;
 use app::UIData;
+use cmp6102::physics;
+use cmp6102::creature::{self, Creature};
 
 fn main() {
 	// Initialise the app data
@@ -107,7 +106,7 @@ fn main() {
 					rectangle([0.0, 0.0, 0.0, 0.35], [xx, 0.0, app.width as f64 / 2.0, app.height as f64], context.transform, graphics);
 				}
 
-				creature.draw((app.width as f64 / 2.0) - x - 128.0, app.height as f64 - 256.0 - y, 1.0, context, graphics);
+				creature_draw(&creature, (app.width as f64 / 2.0) - x - 128.0, app.height as f64 - 256.0 - y, 1.0, context, graphics);
 				rectangle([0.15, 0.9, 0.1, 1.0], [0.0, app.height as f64 - y, app.width as f64, y], context.transform, graphics);
 				if app.draw_simulation && app.simulation_frame < physics::SIM_LENGTH {
 					physics::simulation_step(app.simulation_frame, &mut creature);
@@ -159,13 +158,45 @@ fn main() {
 							context.transform, graphics);
 						let data = app.optmethods[mtd].get_data();
 						let ref creature = data.generations[app.spectate_generation].creatures[data.spectate_creature];
-						creature.draw(x, y + (mtd as f64 * yw), s, context, graphics);
+						creature_draw(&creature, x, y + (mtd as f64 * yw), s, context, graphics);
 					}
 				}
 			},
 			_ => {}
 			}
 		});
+	}
+}
+/// Draws a single creature to the screen
+pub fn creature_draw<G>(creature: &Creature, x: f64, y: f64, scale: f64, c: Context, g: &mut G) where G: Graphics {
+	// Draw every muscle
+	for muscle in &creature.muscles {
+
+		let mut radius = 12.0 * scale;
+		if muscle.contracted { radius -= 6.0 * scale; }
+
+		// Get the pair of nodes for this specific muscle
+		let ref nodes = creature.get_nodes(&muscle.nodes);
+
+		// Generate the colour from it using the muscle's strength
+		// Get the two node positions to draw the line between
+		let col = [0.0, 0.0, 0.0, muscle.strength / creature::BOUNDS_MUSCLE_STRENGTH.end];
+		let coords = [(nodes.0.x as f64) * scale + x, (nodes.0.y as f64) * scale + y, (nodes.1.x as f64) * scale + x, (nodes.1.y as f64) * scale + y];
+
+		// Draw the line to the screen
+		line(col, radius, coords, c.transform, g);
+	}
+
+	// Draw every node
+	for node in &creature.nodes {
+		let radius: f64 = creature::NODE_RADIUS as f64 * scale;
+		// Set the colour of the node based on its friction
+		// Make the bounds of the ellipse centered on the node position, rather than
+		//   off by a few pixels
+		let col: [f32; 4] = [1.0 - node.friction, 0.0, 0.0, 1.0];
+		let rect: [f64; 4] = [(node.x as f64 - radius) * scale + x, (node.y as f64 - radius) * scale + y, (radius * 2.0) * scale, (radius * 2.0) * scale];
+
+		ellipse(col, rect, c.transform, g);
 	}
 }
 

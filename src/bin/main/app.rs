@@ -4,15 +4,15 @@ use piston::input::mouse::MouseButton;
 use conrod::text::font;
 use gui::GUIState;
 use modal::Modal;
-use population::Population;
 use rand::{Rng, StdRng};
-use optimisationmethods::OptimisationMethod;
-use optimisationmethods::hill_climbing::HillClimbing;
-use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
-use optimisationmethods::simulated_annealing::SimulatedAnnealing;
-use std::fs::File;
 use std::io::prelude::*;
-// use creature::Creature;
+use std::fs::File;
+
+use cmp6102::population::Population;
+use cmp6102::optimisationmethods::OptimisationMethod;
+use cmp6102::optimisationmethods::hill_climbing::HillClimbing;
+use cmp6102::optimisationmethods::genetic_algorithm::GeneticAlgorithm;
+use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
 
 pub struct UIData {
 	// Mouse position

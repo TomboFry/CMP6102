@@ -2,6 +2,7 @@ use population::Population;
 use creature::{self, Creature};
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
 use rand::{Rng, StdRng};
+use std::string::String;
 use time;
 use physics;
 
@@ -15,7 +16,7 @@ pub struct HillClimbing {
 impl HillClimbing {
 	pub fn new(population: Population) -> Box<HillClimbing> {
 		Box::new(HillClimbing {
-			data: OpMethodData::new(vec![population])
+			data: OpMethodData::new(vec![population], "HC".to_string())
 		})
 	}
 }

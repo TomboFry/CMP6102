@@ -3,7 +3,7 @@ use conrod::color::Color;
 use conrod::{widget, UiCell, Colorable, Positionable,
 	         Widget, Sizeable, Labelable, Borderable};
 use app::{UIData, Fonts};
-use physics::{self, lerp};
+use cmp6102::physics::{self, lerp};
 
 widget_ids! {
 	pub struct Ids {
@@ -543,7 +543,8 @@ fn menu_generations(ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts)
 			app.draw_simulation = true;
 		}
 
-		widget::Text::new(&*format!("Avg. time: {}ms\nFitness: {}",
+		widget::Text::new(&*format!("{}: Avg. time: {}ms\nFitness: {}",
+				data.title,
 				data.average_gen_time(),
 				data.generations[app.spectate_generation].creatures[data.spectate_creature].fitness as i16)
 			)

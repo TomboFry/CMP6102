@@ -1,6 +1,6 @@
 [package]
 name = "cmp6102"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Tom Gardiner <Thomas.Gardiner3@mail.bcu.ac.uk>"]
 
 [dependencies]
@@ -10,3 +10,12 @@ conrod = { version = "^0.51.0", features = [ "piston" ] }
 find_folder = "^0.3.0"
 rand = "^0.3.15"
 time = "^0.1.36"
+clap = "^2.23.3"
+
+[[bin]]
+name = "main"
+path = "src/bin/main/main.rs"
+
+[[bin]]
+name = "tests"
+path = "src/bin/tests.rs"

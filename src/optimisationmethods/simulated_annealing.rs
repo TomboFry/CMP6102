@@ -2,6 +2,7 @@ use population::Population;
 use creature::{self, Creature};
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
 use rand::{Rng, StdRng};
+use std::string::String;
 use time;
 use physics;
 
@@ -20,7 +21,7 @@ pub struct SimulatedAnnealing {
 impl SimulatedAnnealing {
 	pub fn new(population: Population) -> Box<SimulatedAnnealing> {
 		Box::new(SimulatedAnnealing {
-			data: OpMethodData::new(vec![population]),
+			data: OpMethodData::new(vec![population], "SA".to_string()),
 			temp: TEMP_HIGH,
 			notified: false
 		})
