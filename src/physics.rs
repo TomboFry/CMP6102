@@ -46,15 +46,27 @@ pub fn simulation_step(timer: u32, creature: &mut Creature) {
 }
 
 pub fn force_muscle(creature: &mut Creature, idx: usize, target: f32) {
-	let distance = creature.nodes[creature.muscles[idx].nodes.0].distance(&creature.nodes[creature.muscles[idx].nodes.1]);
-	let angle = (creature.nodes[creature.muscles[idx].nodes.0].y - creature.nodes[creature.muscles[idx].nodes.1].y).atan2(creature.nodes[creature.muscles[idx].nodes.0].x - creature.nodes[creature.muscles[idx].nodes.1].x);
+	let distance =
+		creature.nodes[creature.muscles[idx].nodes.0]
+		.distance(&creature.nodes[creature.muscles[idx].nodes.1]);
+
+	let angle =
+		(creature.nodes[creature.muscles[idx].nodes.0].y -
+		 creature.nodes[creature.muscles[idx].nodes.1].y)
+		.atan2(creature.nodes[creature.muscles[idx].nodes.0].x -
+		       creature.nodes[creature.muscles[idx].nodes.1].x);
+
 	let force = (1.0 - (distance / target)).max(-0.4).min(0.4);
 
-	creature.nodes[creature.muscles[idx].nodes.0].vx += angle.cos() * force * creature.muscles[idx].strength;
-	creature.nodes[creature.muscles[idx].nodes.0].vy += angle.sin() * force * creature.muscles[idx].strength;
+	creature.nodes[creature.muscles[idx].nodes.0].vx +=
+		angle.cos() * force * creature.muscles[idx].strength;
+	creature.nodes[creature.muscles[idx].nodes.0].vy +=
+		angle.sin() * force * creature.muscles[idx].strength;
 
-	creature.nodes[creature.muscles[idx].nodes.1].vx -= angle.cos() * force * creature.muscles[idx].strength;
-	creature.nodes[creature.muscles[idx].nodes.1].vy -= angle.sin() * force * creature.muscles[idx].strength;
+	creature.nodes[creature.muscles[idx].nodes.1].vx -=
+		angle.cos() * force * creature.muscles[idx].strength;
+	creature.nodes[creature.muscles[idx].nodes.1].vy -=
+		angle.sin() * force * creature.muscles[idx].strength;
 }
 
 pub fn force_node(node: &mut Node) {
@@ -69,7 +81,8 @@ pub fn force_node(node: &mut Node) {
 
 pub fn wall_collision(node: &mut Node) {
 	let y = node.y + creature::NODE_RADIUS;
-	// Y position in the world is 0, so anything above that means it's colliding
+	// Y position in the world is 0, so anything above that means it's
+	// colliding
 	if y >= 256.0 {
 		// So the node doesn't get actually drawn in the ground
 		node.y = 256.0 - creature::NODE_RADIUS;
@@ -89,4 +102,42 @@ pub fn wall_collision(node: &mut Node) {
 
 pub fn lerp(v0: f32, v1: f32, t: f32) -> f32 {
 	v0 * (1.0 - t) + v1 * t
+}
+
+#[cfg(test)]
+mod test {
+	#[test]
+	#[should_panic]
+	fn physics_force_muscle() {
+		unimplemented!();
+	}
+
+	#[test]
+	#[should_panic]
+	fn physics_force_node() {
+		unimplemented!();
+	}
+	#[test]
+	#[should_panic]
+	fn physics_wall_collision() {
+		unimplemented!();
+	}
+
+	#[test]
+	#[should_panic]
+	fn physics_simulation_step() {
+		unimplemented!();
+	}
+
+	#[test]
+	#[should_panic]
+	fn physics_simulation_creature() {
+		unimplemented!();
+	}
+
+	#[test]
+	#[should_panic]
+	fn physics_simulation_population() {
+		unimplemented!();
+	}
 }

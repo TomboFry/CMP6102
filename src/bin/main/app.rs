@@ -60,13 +60,22 @@ pub struct UIData {
 }
 
 impl UIData {
-	pub fn new(title: &'static str, win_wh: (u32, u32), fs_wh: (u32, u32), frames: u32) -> Self {
+	pub fn new(
+		title: &'static str,
+		win_wh: (u32, u32),
+		fs_wh: (u32, u32),
+		frames: u32
+	) -> Self {
+		// First attempt to open the settings file to determine whether we
+		// should be in fullscreen mode or not.
 		let file_open = File::open("settings.txt");
+		// Set default to false in case file does not exist.
 		let mut fullscreen = false;
 		match file_open {
 			Ok(mut file) => {
 				let mut contents = String::new();
-				file.read_to_string(&mut contents).expect("Although the file exists, could not read contents of settings.txt");
+				file.read_to_string(&mut contents)
+				    .expect("Although the file exists, could not read contents of settings.txt");
 				fullscreen = if contents == "true" { true } else { false };
 			},
 			_ => {},
@@ -74,11 +83,14 @@ impl UIData {
 
 		let (width, height) = if fullscreen { fs_wh } else { win_wh };
 
+		// Create a new random thread
 		match StdRng::new() {
-			// Very unlikely to fail but just in case it does, this will close the program before it even really begins
+			// Very unlikely to fail, but just in case it does, this will close
+			// the program before it even really begins
 			Err(err) => {
 				panic!("{}", err);
 			},
+			// Create the default program settings
 			Ok(val) => UIData {
 				mouse_x: 0.0, mouse_y: 0.0,
 				mouse_left_down: false, mouse_right_down: false,
@@ -97,7 +109,8 @@ impl UIData {
 				spectate_creature: 0,
 				draw_simulation: false,
 				simulation_frame: 0,
-				process_generations: 0, process_generations_total: 0,
+				process_generations: 0,
+				process_generations_total: 0,
 				current_fitness: 0.0,
 				gen_do: 1,
 				optmethods: Vec::with_capacity(3),
@@ -107,16 +120,26 @@ impl UIData {
 		}
 	}
 
-	pub fn modal_new(&mut self, title: String, message: String, btn_a_label: Option<String>, btn_b_label: Option<String>) {
-		self.modal_struct = Some(Modal::new(title, message, btn_a_label, btn_b_label));
+	// Create a new popup window with a title, message, and button labels
+	pub fn modal_new(
+		&mut self,
+		title: String,
+		message: String,
+		btn_a_label: Option<String>,
+		btn_b_label: Option<String>
+	) {
 		self.modal_visible = true;
+		self.modal_struct =
+			Some(Modal::new(title, message, btn_a_label, btn_b_label));
 	}
 
+	// Destroy the currently displayed popup window
 	pub fn modal_close(&mut self) {
 		self.modal_visible = false;
 		self.modal_struct = None;
 	}
 
+	// Runs every frame, checks for button presses and window resize events
 	pub fn event(&mut self, event: &Input) {
 		match event {
 			// Mouse and Keyboard Down
@@ -157,19 +180,30 @@ impl UIData {
 			_ => {}
 		};
 
+		// If generations are required to be tested and evolved, do it here.
 		if !self.modal_visible && self.process_generations > 0 {
 			self.do_generation();
 			self.process_generations -= 1;
 		}
 	}
 
+	// Save the fullscreen setting to `settings.txt`, also restarts/displays a
+	// message depending on the OS being used.
 	pub fn settings_save(&mut self) {
 		if self.changes {
 			self.changes = false;
 
 			let mut file = File::create("settings.txt").unwrap();
-			file.write_all(if self.fullscreen { b"true" } else { b"false" }).unwrap();
-			self.modal_new("Restart Required".to_string(), "In order to change to fullscreen, a restart of this application is required.".to_string(), None, None);
+			file.write_all(
+				if self.fullscreen { b"true" } else { b"false" }
+			).unwrap();
+			self.modal_new(
+				"Restart Required".to_string(),
+				"In order to change to fullscreen, a restart of
+				this application is required.".to_string(),
+				None,
+				None
+			);
 
 			#[cfg(unix)] use std::process::Command;
 			#[cfg(unix)] use std::os::unix::process::CommandExt;
@@ -179,9 +213,19 @@ impl UIData {
 		}
 	}
 
+	// Initialise optimisation method(s) with the same population and go to
+	// the generations screen
 	pub fn init_tests(&mut self) {
-		if !self.use_genetic_algorithm && !self.use_hill_climbing && !self.use_simulated_annealing {
-			return self.modal_new("Error".to_string(), "Please select at least one optimisation method".to_string(), None, None);
+		if !self.use_genetic_algorithm &&
+		   !self.use_hill_climbing &&
+		   !self.use_simulated_annealing
+		{
+			return self.modal_new(
+				"Error".to_string(),
+				"Please select at least one optimisation method".to_string(),
+				None,
+				None
+			);
 		}
 
 		let population = Population::new(self.generation_size, &mut self.rng);
@@ -201,11 +245,15 @@ impl UIData {
 		self.draw_simulation = false;
 	}
 
+	// Process multiple generations at once
+	// (Does not actually run the generations, this happens in `event()`)
 	pub fn do_generations(&mut self, num: usize) {
 		self.process_generations = num;
 		self.process_generations_total = num;
 	}
 
+	// Run a single generation, displaying a popup window if Simulated
+	// Annealing has reached its lowest temperature.
 	pub fn do_generation(&mut self) {
 		for method in 0 .. self.optmethods.len() {
 			match self.optmethods[method].generation_single(&mut self.rng) {
@@ -219,11 +267,21 @@ impl UIData {
 		self.simulation_frame = 0;
 	}
 
-	pub fn set_creature(&mut self, method: usize, index: usize, generation: usize) {
+	// Change a specified OM's currently displayed creature to a specific
+	// index and generation  
+	pub fn set_creature(
+		&mut self,
+		method: usize,
+		index: usize,
+		generation: usize
+	) {
 		self.reset_simulation();
 		let data = self.optmethods[method].get_data();
 		self.spectate_creature = index;
-		self.current_fitness = data.generations[generation].creatures[self.spectate_creature].fitness;
+		self.current_fitness =
+			data.generations[generation]
+			    .creatures[self.spectate_creature]
+			    .fitness;
 	}
 
 	pub fn set_creature_random(&mut self) {
@@ -233,14 +291,19 @@ impl UIData {
 		self.set_creature(mtd, index, gen);
 	}
 
+	// Reset the currently simulated creature to its default state.
 	pub fn reset_simulation(&mut self) {
 		for method in &mut self.optmethods {
 			let mut data = method.get_data_mut();
-			data.generations[self.spectate_generation].creatures[self.spectate_creature].reset_position();
+			data.generations[self.spectate_generation]
+			    .creatures[self.spectate_creature]
+			    .reset_position();
 		}
 		self.simulation_frame = 0;
 	}
 
+	// Destroy all the currently used optimisation methods and settings used
+	// by the generations screen.
 	pub fn reset_optmethods(&mut self) {
 		self.optmethods.clear();
 		self.total_generations = 0;

@@ -7,8 +7,7 @@ pub struct Modal {
 	pub button_b_label: String
 }
 
-impl Modal
-{
+impl Modal {
 	pub fn new(title: String, message: String, btn_a_label: Option<String>, btn_b_label: Option<String>) -> Modal {
 		let mut button_a_label = "Okay".to_string();
 		let mut button_b_label = "Close".to_string();

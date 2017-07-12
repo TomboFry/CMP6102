@@ -26,7 +26,7 @@ fn main () {
 						 .short("g")
 						 .long("generations")
 						 .value_name("count")
-						 .help("Sets the number of generations to go through in each sample")
+						 .help("The number of generations to go through in each sample")
 						 .takes_value(true))
 					.arg(Arg::with_name("samples")
 						 .short("s")
@@ -79,13 +79,17 @@ fn main () {
 
 	println!("");
 
-	let mut sample_fitness: Vec<Vec<f32>> = (0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
-	let mut sample_time: Vec<Vec<u64>> = (0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
+	let mut sample_fitness: Vec<Vec<f32>> =
+		(0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
+
+	let mut sample_time: Vec<Vec<u64>> =
+		(0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
 
 	for _ in 0 .. sample_size {
 		let population = Population::new(pop_size, &mut rng);
 
-		let mut opt: Vec<Box<OptimisationMethod>> = Vec::with_capacity(optmethods.len());
+		let mut opt: Vec<Box<OptimisationMethod>> =
+			Vec::with_capacity(optmethods.len());
 
 		for mtd in &optmethods {
 			match *mtd {
@@ -123,7 +127,10 @@ fn main () {
 
 		average_fitness /= sample_size as f32;
 		average_time /= sample_size as u64;
-		println!("{}:\n    Average Time:\t{}ms\n    Highest Fitness:\t{}", optmethods[mtd], average_time, average_fitness);
+		println!(
+			"{}:\n    Average Time:\t{}ms\n    Highest Fitness:\t{}",
+			optmethods[mtd], average_time, average_fitness
+		);
 	}
 }
 

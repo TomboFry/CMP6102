@@ -8,6 +8,8 @@ pub mod genetic_algorithm;
 pub mod hill_climbing;
 pub mod simulated_annealing;
 
+/// GenResult
+/// Expects Ok(()) or Err((Title, Message))
 pub type GenResult = Result<(), (String, String)>;
 
 pub struct OpMethodData {
@@ -69,19 +71,44 @@ impl OpMethodData {
 		total / self.gen_time.len() as u64
 	}
 
-	pub fn mutate(creature: &Creature, rng: &mut StdRng, rate: f32, node_add: bool, node_remove: bool) -> Creature {
-		// Start by cloning the original creature so we can modify the values of the new one
+	pub fn mutate(
+		creature: &Creature,
+		rng: &mut StdRng,
+		rate: f32,
+		node_add: bool,
+		node_remove: bool
+	) -> Creature {
+		// Start by cloning the original creature so we can modify the values
+		// of the new one
 		let mut new_creature = creature.clone();
 
 		new_creature.reset_position();
 
 		// For each node in the creature
 		for node in &mut new_creature.nodes {
-			// Modify the values of each property by the specified rate, but still making sure
-			//   they are within the bounds of the original creature specifications.
-			node.start_x = OpMethodData::mutate_clamp(node.start_x, rate * 40.0, creature::BOUNDS_NODE_X, rng);
-			node.start_y = OpMethodData::mutate_clamp(node.start_y, rate * 40.0, creature::BOUNDS_NODE_Y, rng);
-			node.friction = OpMethodData::mutate_clamp(node.friction, rate, creature::BOUNDS_NODE_FRICTION, rng);
+			// Modify the values of each property by the specified rate, but
+			// still making sure they are within the bounds of the original
+			// creature specifications.
+			node.start_x = OpMethodData::mutate_clamp(
+				node.start_x,            // Value to change
+				rate * 40.0,             // Maximum variation
+				creature::BOUNDS_NODE_X, // Adhering to these bounds
+				rng                      // Seeded RNG thread
+			);
+
+			node.start_y = OpMethodData::mutate_clamp(
+				node.start_y,
+				rate * 40.0,
+				creature::BOUNDS_NODE_Y,
+				rng
+			);
+
+			node.friction = OpMethodData::mutate_clamp(
+				node.friction,
+				rate, 
+				creature::BOUNDS_NODE_FRICTION, 
+				rng
+			);
 		}
 
 		// Have the random chance to add a node
@@ -96,42 +123,85 @@ impl OpMethodData {
 		}
 
 		// Make sure any nodes and muscles we've mutated/crossed over did not
-		//   leave any node by itself
-		Creature::check_lonely_nodes(&new_creature.nodes, &mut new_creature.muscles, rng);
+		// leave any node by itself
+		Creature::check_lonely_nodes(
+			&new_creature.nodes,
+			&mut new_creature.muscles,
+			rng
+		);
 
-		// Now just make sure there are no muscles creating a cycle in the graph
-		new_creature.muscles = Creature::check_colliding_muscles(&new_creature.muscles);
+		// Now just make sure there are no muscles creating a
+		// cycle in the graph
+		new_creature.muscles =
+			Creature::check_colliding_muscles(&new_creature.muscles);
 
 		// Do the same process as above by for the muscles.
 		for muscle in &mut new_creature.muscles {
 			muscle.range_mut(new_creature.nodes.len(), rng);
 
-			muscle.strength = OpMethodData::mutate_clamp(muscle.strength, rate, creature::BOUNDS_MUSCLE_STRENGTH, rng);
+			muscle.strength =
+				OpMethodData::mutate_clamp(
+					muscle.strength,
+					rate,
+					creature::BOUNDS_MUSCLE_STRENGTH,
+					rng
+				);
 
-			muscle.len = new_creature.nodes[muscle.nodes.0].distance(&new_creature.nodes[muscle.nodes.1]);
+			muscle.len =
+				new_creature
+				.nodes[muscle.nodes.0]
+				.distance(&new_creature.nodes[muscle.nodes.1]);
+
 			muscle.len_min = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.start;
 			muscle.len_max = muscle.len * creature::BOUNDS_MUSCLE_LENGTH.end;
 
-			muscle.time_extended = OpMethodData::mutate_clamp_int(muscle.time_extended, rate * 10.0, creature::BOUNDS_MUSCLE_TIME_EXTENDED, rng);
-			muscle.time_contracted = OpMethodData::mutate_clamp_int(muscle.time_contracted, rate * 10.0, creature::BOUNDS_MUSCLE_TIME_CONTRACTED, rng);
+			muscle.time_extended = OpMethodData::mutate_clamp_int(
+				muscle.time_extended,
+				rate * 8.0,
+				creature::BOUNDS_MUSCLE_TIME_EXTENDED,
+				rng
+			);
+
+			muscle.time_contracted = OpMethodData::mutate_clamp_int(
+				muscle.time_contracted,
+				rate * 8.0,
+				creature::BOUNDS_MUSCLE_TIME_CONTRACTED,
+				rng
+			);
 		}
 
 		// Finally, return the new creature with the modified values.
 		new_creature
 	}
 
-	pub fn mutate_clamp(value: f32, rate: f32, range: Range<f32>, rng: &mut StdRng) -> f32 {
+	pub fn mutate_clamp(
+		value: f32,
+		rate: f32,
+		range: Range<f32>,
+		rng: &mut StdRng
+	) -> f32 {
 		(value + rng.gen_range(-rate, rate)).max(range.start).min(range.end)
 	}
 
-	pub fn mutate_clamp_int(value: u32, rate: f32, range: Range<u32>, rng: &mut StdRng) -> u32 {
-		::std::cmp::max(range.start, ::std::cmp::min((value as i32 + rng.gen_range(-rate, rate) as i32) as u32, range.end))
+	pub fn mutate_clamp_int(
+		value: u32,
+		rate: f32,
+		range: Range<u32>,
+		rng: &mut StdRng
+	) -> u32 {
+		::std::cmp::max(
+			range.start,
+			::std::cmp::min(
+				(value as i32 + rng.gen_range(-rate, rate) as i32) as u32,
+				range.end
+			)
+		)
 	}
 }
 
 pub trait OptimisationMethod {
-	fn generation_single    (&mut self, rng: &mut StdRng) -> GenResult;
-	fn creature_get         (&mut self, gen: usize, idx: usize) -> &mut Creature;
-	fn get_data_mut         (&mut self) -> &mut OpMethodData;
-	fn get_data             (&self) -> &OpMethodData;
+	fn generation_single (&mut self, rng: &mut StdRng) -> GenResult;
+	fn creature_get      (&mut self, gen: usize, idx: usize) -> &mut Creature;
+	fn get_data_mut      (&mut self) -> &mut OpMethodData;
+	fn get_data          (&self) -> &OpMethodData;
 }
