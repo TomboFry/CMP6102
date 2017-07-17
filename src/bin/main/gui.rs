@@ -21,6 +21,7 @@ widget_ids! {
 		options_title,
 		options_btn_back,
 		options_toggle_fullscreen,
+		options_toggle_print,
 
 		// New Test Menu Widgets
 		new_canvas,
@@ -36,6 +37,8 @@ widget_ids! {
 		gen_canvas,
 		gen_title,
 		gen_btn_back,
+		gen_btn_export,
+		gen_btn_export_full,
 
 		gen_rect_ga,
 		gen_rect_sa,
@@ -72,6 +75,10 @@ widget_ids! {
 		gen_btn_ga,
 		gen_btn_sa,
 		gen_btn_hc,
+
+		gen_fittest_ga,
+		gen_fittest_sa,
+		gen_fittest_hc,
 
 		gen_txt_ga,
 		gen_txt_sa,
@@ -146,8 +153,7 @@ pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		GUIState::NewTest     => menu_new_test(ui, ids, app, fonts),
 		GUIState::Options     => menu_options(ui, ids, app, fonts),
 		GUIState::Generations => menu_generations(ui, ids, app, fonts),
-		GUIState::Spectate    => menu_spectate(ui, ids, app, fonts),
-		_ => {}
+		GUIState::Spectate    => menu_spectate(ui, ids, app, fonts)
 	}
 
 	if app.modal_visible {
@@ -403,15 +409,14 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.set(ids.options_title, ui);
 
 	// Fullscreen Toggle
-	let fullscreen = app.fullscreen;
 	let fullscreen_txt =
-		if fullscreen {
+		if app.fullscreen {
 			"Fullscreen: On"
 		} else {
 			"Fullscreen: Off"
 		};
 
-	for value in widget::Toggle::new(fullscreen)
+	for value in widget::Toggle::new(app.fullscreen)
 		.label(fullscreen_txt)
 		.label_color(COL_LBL)
 		.label_font_size(20)
@@ -426,6 +431,29 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		app.changes = true;
 	}
 
+	// Debug Print Toggle
+	let print_txt =
+		if app.print {
+			"Print to console: On"
+		} else {
+			"Print to console: Off"
+		};
+
+	for value in widget::Toggle::new(app.print)
+		.label(print_txt)
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.color(COL_BTN)
+		.mid_left()
+		.down_from(ids.options_toggle_fullscreen, SPACING)
+		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
+		.border(0.0)
+		.set(ids.options_toggle_print, ui)
+	{
+		app.print = value;
+		app.changes = true;
+	}
+
 	// Back/Save Button
 	for _press in widget::Button::new()
 		.color(COL_BTN)
@@ -433,7 +461,7 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.label_color(COL_LBL)
 		.label_font_size(20)
 		.mid_left()
-		.down_from(ids.options_toggle_fullscreen, SPACING)
+		.down_from(ids.options_toggle_print, SPACING)
 		.w_h(canvas_width - (MARGIN * 2.0), 48.0)
 		.border(0.0)
 		.set(ids.options_btn_back, ui)
@@ -473,7 +501,7 @@ fn menu_generations(
 		.set(ids.gen_title, ui);
 
 	// Back/Exit Button
-	for _press in widget::Button::new()
+	for _ in widget::Button::new()
 		.label("<")
 		.label_color(COL_LBL)
 		.label_font_size(20)
@@ -488,7 +516,7 @@ fn menu_generations(
 	}
 
 	// Do Single Generation Button
-	for _press in widget::Button::new()
+	for _ in widget::Button::new()
 		.label("Do Generation")
 		.label_color(COL_LBL)
 		.label_font_size(20)
@@ -502,9 +530,9 @@ fn menu_generations(
 		app.do_generations(1);
 	}
 
-	// Do X Number of Generations Slider (1 - 255 gens)
+	// Do X Number of Generations Slider (10 - 500 gens)
 	let gen_do = app.gen_do;
-	for value in widget::Slider::new(gen_do as f32, 1.0, 255.0)
+	for value in widget::Slider::new(gen_do as f32, 10.0, 500.0)
 		.color(COL_BTN)
 		.label(&*format!("Do {} gens", gen_do))
 		.label_color(COL_LBL)
@@ -514,11 +542,11 @@ fn menu_generations(
 		.w_h(btn_width, 48.0)
 		.set(ids.gen_slider_gen_do, ui)
 	{
-		app.gen_do = value as usize;
+		app.gen_do = (value / 10.0) as usize * 10;
 	}
 
 	// Do Generations Button
-	for _press in widget::Button::new()
+	for _ in widget::Button::new()
 		.label("Go")
 		.label_color(COL_LBL)
 		.label_font_size(20)
@@ -534,15 +562,45 @@ fn menu_generations(
 		if gen_do > 10 {
 			app.modal_new(
 				"This could take a while...".to_string(),
-				"You are about to process more than 10 generations in a single
-				click, so be aware this may take a long time to process."
-					.to_string(),
+				"You are about to process more than 10 generations
+in a single click, so be aware this may take a long
+time to process.".to_string(),
 				None,
 				None
 			);
 		}
 
 		app.do_generations(gen_do);
+	}
+
+	// Export Lowest, Fittest, and quartile fitness values
+	for _ in widget::Button::new()
+		.label("Export Data")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(btn_width, 48.0)
+		.color(COL_BTN)
+		.mid_left()
+		.down_from(ids.gen_btn_gen_do, SPACING)
+		.border(0.0)
+		.set(ids.gen_btn_export, ui)
+	{
+		app.export_data();
+	}
+
+	// Export Lowest, Fittest, and quartile fitness values
+	for _ in widget::Button::new()
+		.label("Export ALL Data")
+		.label_color(COL_LBL)
+		.label_font_size(20)
+		.w_h(btn_width, 48.0)
+		.color(COL_BTN)
+		.mid_left()
+		.down_from(ids.gen_btn_export, SPACING)
+		.border(0.0)
+		.set(ids.gen_btn_export_full, ui)
+	{
+		app.export_data_full();
 	}
 
 	// Set the currently viewed generation
@@ -616,6 +674,11 @@ fn menu_generations(
 		ids.gen_circle_sa,
 		ids.gen_circle_hc
 	];
+	let ids_btn_fittest = vec![
+		ids.gen_fittest_ga,
+		ids.gen_fittest_sa,
+		ids.gen_fittest_hc
+	];
 
 	// Calculate the height of each section depending on how many methods
 	// we're using and the height of the window.
@@ -631,16 +694,17 @@ fn menu_generations(
 			(app.generation_size as f64 - data.spectate_creature as f64),
 			1.0, app.generation_size as f64
 		)
-			.label(&*format!("Crt: {}", (app.generation_size -
-			                             data.spectate_creature)))
+			.label(&*format!("Crt {} / {}", (app.generation_size -
+			                                 data.spectate_creature),
+			                                app.generation_size))
 			.label_color(COL_LBL)
 			.label_font_size(20)
 			.color(COL_BTN)
 			.top_left_with_margins_on(
 				ids.gen_canvas,
 				64.0 + (mtd as f64 * method_height),
-				468.0)
-			.w_h(256.0, 32.0)
+				452.0)
+			.w_h(240.0, 32.0)
 			.border(1.0)
 			.set(ids_slider[mtd], ui)
 		{
@@ -650,13 +714,14 @@ fn menu_generations(
 		}
 
 		// Watch a simulation of the currently viewed creature
-		for _press in widget::Button::new()
-			.label("View")
+		for _ in widget::Button::new()
+			.label("\u{f06e}")
 			.label_color(COL_LBL)
-			.label_font_size(20)
-			.w_h(256.0, 32.0)
+			.label_font_size(16)
+			.label_font_id(fonts.fontawesome)
+			.w_h(32.0, 32.0)
 			.color(COL_BTN)
-			.down_from(ids_slider[mtd], 2.0)
+			.right_from(ids_slider[mtd], 1.0)
 			.border(0.0)
 			.set(ids_btn[mtd], ui)
 		{
@@ -664,6 +729,24 @@ fn menu_generations(
 			app.gui_state = GUIState::Spectate;
 			app.spectate_method = mtd;
 			app.draw_simulation = true;
+		}
+
+		// Watch a simulation of the currently viewed creature
+		for _ in widget::Button::new()
+			.label("\u{f201}")
+			.label_color(COL_LBL)
+			.label_font_size(16)
+			.label_font_id(fonts.fontawesome)
+			.w_h(32.0, 32.0)
+			.color(COL_BTN)
+			.down_from(ids_btn[mtd], 1.0)
+			.border(0.0)
+			.set(ids_btn_fittest[mtd], ui)
+		{
+			let fittest_gen = data.generations_get_fittest_gen();
+			data.spectate_creature = 0;
+			app.spectate_creature = 0;
+			app.spectate_generation = fittest_gen;
 		}
 
 		// Display some information about the optimisation
@@ -678,10 +761,10 @@ fn menu_generations(
 			.color(COL_TXT)
 			.font_size(18)
 			.font_id(fonts.bold)
-			.w(256.0)
+			.w(240.0)
 			.wrap_by_word()
-			.line_spacing(12.0)
-			.down_from(ids_btn[mtd], 8.0)
+			.line_spacing(8.0)
+			.down_from(ids_slider[mtd], 8.0)
 			.set(ids_txt[mtd], ui);
 
 		let graph_width = app.width as f64 - 848.0;
@@ -732,16 +815,18 @@ fn menu_generations(
 			graph_height as f64
 		};
 
+		let graph_spacing = SPACING + 32.0;
+
 		// Draw a white rectangle to cover the space of the graph for this
 		// optimisation method
 		widget::Rectangle::fill_with([graph_width, graph_height], COL_LBL)
-			.right_from(ids_slider[mtd], SPACING)
+			.right_from(ids_slider[mtd], graph_spacing)
 			.set(ids_rect[mtd], ui);
 
 		// Draw a line of y = 0 where y is the fitness value of a creature
 		widget::Line::centred([0.0, 0.0], [graph_width, 0.0])
 			.color(COL_TXT)
-			.right_from(ids_slider[mtd], SPACING)
+			.right_from(ids_slider[mtd], graph_spacing)
 			.down(down(0.0))
 			.set(ids_grid[mtd], ui);
 
@@ -755,7 +840,7 @@ fn menu_generations(
 		)
 		.w_h(graph_width, graph_height)
 		.color(COL_TXT)
-		.right_from(ids_slider[mtd], SPACING)
+		.right_from(ids_slider[mtd], graph_spacing)
 		.set(ids_graph_max[mtd], ui);
 
 		// Plot a path of the generation's average creature fitness
@@ -768,7 +853,7 @@ fn menu_generations(
 		)
 		.w_h(graph_width, graph_height)
 		.color(COL_TXT)
-		.right_from(ids_slider[mtd], SPACING)
+		.right_from(ids_slider[mtd], graph_spacing)
 		.set(ids_graph_avg[mtd], ui);
 
 		// Plot a path of the weakest creature of each generation
@@ -781,12 +866,12 @@ fn menu_generations(
 		)
 		.w_h(graph_width, graph_height)
 		.color(COL_TXT)
-		.right_from(ids_slider[mtd], SPACING)
+		.right_from(ids_slider[mtd], graph_spacing)
 		.set(ids_graph_min[mtd], ui);
 
 		// If we've done more than one generation draw a line to indicate
 		// which creature from which generation we are looking at in the
-		// preview box 
+		// preview box
 		if data.gen > 0 {
 			widget::Line::centred([0.0, 0.0], [0.0, graph_height])
 				.color(COL_BTN_STOP)
@@ -794,7 +879,7 @@ fn menu_generations(
 				.right_from(
 					ids_slider[mtd],
 					((app.spectate_generation as f64 / data.gen as f64) *
-					 graph_width) + SPACING
+					 graph_width) + graph_spacing
 				)
 				.set(ids_line[mtd], ui);
 
@@ -802,7 +887,7 @@ fn menu_generations(
 				.right_from(
 					ids_slider[mtd],
 					((app.spectate_generation as f64 / data.gen as f64) *
-					 graph_width) - 2.0 + SPACING
+					 graph_width) - 2.0 + graph_spacing
 				)
 				.down(down(
 					data.generations[app.spectate_generation]
@@ -821,7 +906,7 @@ fn menu_spectate (
 	fonts: &Fonts
 ) {
 	// Back Button
-	for _press in widget::Button::new()
+	for _ in widget::Button::new()
 		.color(COL_BTN_STOP)
 		.label("<")
 		.label_color(COL_LBL)
@@ -843,7 +928,7 @@ fn menu_spectate (
 	}
 
 	// Restart the simulation
-	for _press in widget::Button::new()
+	for _ in widget::Button::new()
 		.color(COL_BTN)
 		.label("Reset Simulation")
 		.label_color(COL_LBL)
@@ -945,7 +1030,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 			.set(ids.modal_message, ui);
 
 		// Left/"Accept" Button
-		for _press in widget::Button::new()
+		for _ in widget::Button::new()
 			.color(COL_BTN_GO)
 			.label(&modal.button_a_label)
 			.label_color(COL_LBL)
@@ -959,7 +1044,7 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		}
 
 		// Right/"Cancel" Button
-		for _press in widget::Button::new()
+		for _ in widget::Button::new()
 			.color(COL_BTN_STOP)
 			.label(&modal.button_b_label)
 			.label_color(COL_LBL)

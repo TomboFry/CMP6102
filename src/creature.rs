@@ -1,6 +1,6 @@
 use std::cmp::{PartialOrd, Ordering};
 use std::ops::Range;
-use rand::{Rng, StdRng};
+use rand::{Rng, ThreadRng};
 use rand::distributions::range::SampleRange;
 
 /// Constants to define a creatures lower and upper exclusive bounds.
@@ -8,7 +8,7 @@ use rand::distributions::range::SampleRange;
 ///     any more and it's going to behave like a big mess.
 pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 7;
 pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
-pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 248.0;
+pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 256.0;
 pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.1 .. 0.95;
 pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 1.0 .. 10.0;
 pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 40 .. 120;
@@ -20,10 +20,10 @@ pub const NODE_RADIUS: f32 = 16.0;
 /// Add "gen" function to range, which will return a random
 /// value between its lower and upper bounds
 pub trait RangeBounds<T> {
-	fn gen(&self, rng: &mut StdRng) -> T;
+	fn gen(&self, rng: &mut ThreadRng) -> T;
 }
 impl<T: Copy> RangeBounds<T> for Range<T> where T: PartialOrd + SampleRange {
-	fn gen(&self, rng: &mut StdRng) -> T {
+	fn gen(&self, rng: &mut ThreadRng) -> T {
 		rng.gen_range(self.start, self.end)
 	}
 }
@@ -66,6 +66,10 @@ impl Ord for Creature {
 	}
 }
 
+/// A pair of existing nodes to connect a muscle together
+#[derive(Clone)]
+pub struct NodePair(pub usize, pub usize);
+
 /// A node of a creature, essentially a vertex in a graph
 #[derive(Clone)]
 pub struct Node {
@@ -77,10 +81,6 @@ pub struct Node {
 	pub vx: f32,       // Physics property
 	pub vy: f32        // Physics property
 }
-
-/// A pair of existing nodes to connect a muscle together
-#[derive(Clone)]
-pub struct NodePair(pub usize, pub usize);
 
 /// A muscle of a creature, made up of a pair of nodes.
 /// Essentially an edge in a graph
@@ -99,7 +99,7 @@ pub struct Muscle {
 impl Creature {
 	/// Generates a new creature with random property values within
 	/// their bounds
-	pub fn new(rng: &mut StdRng) -> Creature {
+	pub fn new(rng: &mut ThreadRng) -> Creature {
 		// Decide how many nodes it should have.
 		let num_nodes: u8 = BOUNDS_NODE_COUNT.gen(rng);
 
@@ -143,7 +143,7 @@ impl Creature {
 	}
 
 	/// Generate a node adhering to the property bounds
-	pub fn add_node_random(rng: &mut StdRng) -> Node {
+	pub fn add_node_random(rng: &mut ThreadRng) -> Node {
 		// Set the node's properties to random values within the bounds.
 		let x = BOUNDS_NODE_X.gen(rng);
 		let y = BOUNDS_NODE_Y.gen(rng);
@@ -168,7 +168,7 @@ impl Creature {
 	}
 
 	/// Returns a new, randomly generated muscle
-	pub fn add_muscle_random(nodes: &Vec<Node>, rng: &mut StdRng) -> Muscle {
+	pub fn add_muscle_random(nodes: &Vec<Node>, rng: &mut ThreadRng) -> Muscle {
 		Creature::add_muscle_index(rng.gen_range(0, nodes.len()), nodes, rng)
 	}
 
@@ -177,7 +177,7 @@ impl Creature {
 	pub fn add_muscle_index(
 		idx: usize,
 		nodes: &Vec<Node>,
-		rng: &mut StdRng) -> Muscle
+		rng: &mut ThreadRng) -> Muscle
 	{
 		let mut index = idx;
 		let mut idx_other;
@@ -213,7 +213,7 @@ impl Creature {
 	pub fn check_lonely_nodes(
 		nodes: &Vec<Node>,
 		muscles: &mut Vec<Muscle>,
-		rng: &mut StdRng)
+		rng: &mut ThreadRng)
 	{
 		for node in 0 .. nodes.len() {
 			let mut connections: u32 = 0;
@@ -296,7 +296,7 @@ impl Node {
 impl Muscle {
 	/// Return a muscle based on an existing one, only to make sure the nodes
 	/// are actually in range
-	pub fn range(&self, max: usize, rng: &mut StdRng) -> Muscle {
+	pub fn range(&self, max: usize, rng: &mut ThreadRng) -> Muscle {
 		let mut new_muscle = self.clone();
 		if new_muscle.nodes.0 >= max {
 			new_muscle.nodes.0 = rng.gen_range(0, max);
@@ -309,7 +309,7 @@ impl Muscle {
 
 	/// Return a muscle based on an existing one, only to make sure the nodes
 	/// are actually in range
-	pub fn range_mut(&mut self, max: usize, rng: &mut StdRng) {
+	pub fn range_mut(&mut self, max: usize, rng: &mut ThreadRng) {
 		if self.nodes.0 >= max {
 			self.nodes.0 = rng.gen_range(0, max);
 		}
@@ -363,7 +363,7 @@ mod test {
 	/// Create a random node and add it to an empty creature
 	#[test]
 	fn add_node_random() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 
 		let node = Creature::add_node_random(&mut rng);
@@ -377,7 +377,7 @@ mod test {
 	/// Manually create a muscle and add it to an empty creature
 	#[test]
 	fn add_muscle() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 
 		// Create the two nodes, ignoring the resulting index
@@ -410,7 +410,7 @@ mod test {
 	/// Create a muscle with a given first node index
 	#[test]
 	fn add_muscle_index() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 		let _ = creature.add_node(Creature::add_node_random(&mut rng));
 		let _ = creature.add_node(Creature::add_node_random(&mut rng));
@@ -433,7 +433,7 @@ mod test {
 	/// Create a random muscle and add it to an empty creature
 	#[test]
 	fn add_muscle_random() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 		let _ = creature.add_node(Creature::add_node_random(&mut rng));
 		let _ = creature.add_node(Creature::add_node_random(&mut rng));
@@ -451,7 +451,7 @@ mod test {
 	/// Make sure each node is connected to a muscle
 	#[test]
 	fn empty_nodes() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 
 		// Create four nodes
@@ -482,7 +482,7 @@ mod test {
 	/// Make sure any duplicate muscles get removed
 	#[test]
 	fn colliding_muscles() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let mut creature = Creature::empty();
 
 		// Create two nodes
@@ -518,13 +518,13 @@ mod test {
 	/// within the correct bounds
 	#[test]
 	fn calc_fitness_random_creature() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let creature = Creature::new(&mut rng);
 
 		// Get the fitness of the newly generated creature
 		let fitness = creature.fitness();
 
-		// Upon initial creation, make sure the fitness is smaller than the 
+		// Upon initial creation, make sure the fitness is smaller than the
 		// maximum X bounds, pivoted around 0.
 		assert!(
 			fitness < (BOUNDS_NODE_X.end * 0.5) &&
@@ -562,7 +562,7 @@ mod test {
 		// Get the fitness of the creature
 		let fitness = creature.fitness();
 
-		// Upon initial creation, make sure the fitness is 
+		// Upon initial creation, make sure the fitness is
 		//  = ((0 + 64) / 2) - (BOUNDS_NODE_X.end * 0.5)
 		//  = 32 - (256 / 2)
 		//  = 32 - 128
@@ -574,7 +574,7 @@ mod test {
 	/// specified bounds
 	#[test]
 	fn create_bounds() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let creature = Creature::new(&mut rng);
 
 		assert!(

@@ -1,4 +1,7 @@
 target
 Cargo.lock
 settings.txt
-graphics/poster-assets
+graphics/
+*.xlsx
+*.csv
+*.txt

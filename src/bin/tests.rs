@@ -7,7 +7,6 @@ use cmp6102::optimisationmethods::OptimisationMethod;
 use cmp6102::optimisationmethods::hill_climbing::HillClimbing;
 use cmp6102::optimisationmethods::genetic_algorithm::GeneticAlgorithm;
 use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
-use rand::StdRng;
 use clap::{Arg, App};
 
 fn main () {
@@ -51,7 +50,7 @@ fn main () {
 						 .takes_value(false))
 					.get_matches();
 
-	let mut rng = get_rng();
+	let mut rng = rand::thread_rng();
 
 	let gen_count = matches.value_of("generations").unwrap_or("200").parse::<usize>().unwrap();
 	let pop_size = matches.value_of("population").unwrap_or("1000").parse::<usize>().unwrap();
@@ -102,7 +101,7 @@ fn main () {
 
 		for mtd in 0 .. opt.len() {
 			for _ in 0 .. gen_count {
-				match opt[mtd].generation_single(&mut rng) {
+				match opt[mtd].generation_single() {
 					Err(_) => break,
 					_ => {}
 				}
@@ -128,16 +127,8 @@ fn main () {
 		average_fitness /= sample_size as f32;
 		average_time /= sample_size as u64;
 		println!(
-			"{}:\n    Average Time:\t{}ms\n    Highest Fitness:\t{}",
+			"{}:\n    Average Time:\t{}ms\n    Average Fitness:\t{}",
 			optmethods[mtd], average_time, average_fitness
 		);
-	}
-}
-
-fn get_rng() -> StdRng {
-	if let Ok(rng) = StdRng::new() {
-		rng
-	} else {
-		panic!("Could not create RNG");
 	}
 }

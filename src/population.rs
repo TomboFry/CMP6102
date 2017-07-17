@@ -1,6 +1,6 @@
 use creature::Creature;
 use physics;
-use rand::StdRng;
+use rand::ThreadRng;
 
 #[derive(Clone)]
 pub struct Population {
@@ -10,7 +10,7 @@ pub struct Population {
 impl Population {
 
 	/// Creates a new population with a specified size
-	pub fn new(pop_size: usize, rng: &mut StdRng) -> Population {
+	pub fn new(pop_size: usize, rng: &mut ThreadRng) -> Population {
 		// 1: Generate a population with a specified size
 		let creatures = (0 .. pop_size).map(|_| {
 			Creature::new(rng)
@@ -67,11 +67,10 @@ impl Population {
 }
 
 mod test {
-	use population::*;
 
 	#[test]
 	fn new_pop() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let population = Population::new(100, &mut rng);
 
 		assert_eq!(population.creatures.len(), 100);
@@ -79,7 +78,7 @@ mod test {
 
 	#[test]
 	fn fittest() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let population = Population::new(100, &mut rng);
 
 		// Ensure that the fitness of the creature returned by the fittest()
@@ -92,10 +91,10 @@ mod test {
 			population.fittest().fitness > population.creatures[1].fitness
 		);
 	}
-	
+
 	#[test]
 	fn weakest() {
-		let mut rng = ::test::rng_init();
+		let mut rng = rand::thread_rng();
 		let population = Population::new(100, &mut rng);
 
 		// Ensure that the fitness of the creature returned by the weakest()

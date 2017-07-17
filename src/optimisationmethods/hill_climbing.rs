@@ -1,31 +1,33 @@
 use population::Population;
 use creature::{self, Creature};
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
-use rand::{Rng, StdRng};
+use rand::{self, Rng};
 use time;
 use physics;
+use rayon::prelude::*;
 
 pub const CLIMB_ATTEMPTS: usize = 4;
-pub const MUTABILITY_RATE: f32 = 0.35;
+pub const MUTABILITY_RATE: f32 = 0.1;
+pub const PROB_NODE_CHANGE: f32 = 8.0; // will be 1 / x
 
 pub struct HillClimbing {
 	pub data: OpMethodData
 }
 
 impl HillClimbing {
-	pub fn new(population: Population) -> Box<HillClimbing> {
+	pub fn new(population: Population, print: bool) -> Box<HillClimbing> {
 		Box::new(HillClimbing {
-			data: OpMethodData::new(vec![population], "HC".to_string())
+			data: OpMethodData::new(vec![population], "HC".to_string(), print)
 		})
 	}
 }
 
 impl OptimisationMethod for HillClimbing {
-	fn generation_single(&mut self, rng: &mut StdRng) -> GenResult {
+	fn generation_single(&mut self) -> GenResult {
 		let gen_size = self.data.generations[self.data.gen].creatures.len();
 		let mut new_population = Population::empty(gen_size);
 
-		println!(
+		if self.data.print { println!(
 			"HC - Gen {}: Lowest Fit: {}\tAverage Fit: {}\tHighest Fit: {}",
 			self.data.gen,
 			self.data.generations[self.data.gen]
@@ -33,40 +35,41 @@ impl OptimisationMethod for HillClimbing {
 			    .fitness,
 			self.data.generations[self.data.gen].fitness_average(),
 			self.data.generations[self.data.gen].creatures[0].fitness
-		);
+		); }
 
 		let time_start = time::precise_time_ns() / 1_000_000;
 
-		// Do Hill Climbing Stuff here.
-		for creature in &mut self.data.generations[self.data.gen].creatures {
+		self.data.generations[self.data.gen].creatures
+		.par_iter_mut()
+		.map(|creature| {
 			let mut new_creatures = Vec::with_capacity(CLIMB_ATTEMPTS);
+			let mut rng_new = rand::thread_rng();
 			for _ in 0 .. CLIMB_ATTEMPTS {
-				let mut node_add = false;
-				let mut node_remove = false;
 
-				// Have the random chance to add a node
-				if rng.gen::<f32>() * CLIMB_ATTEMPTS as f32 <= 1.0 &&
-				   creature.nodes.len() as u8 <=
-				   creature::BOUNDS_NODE_COUNT.end - 1
-				{
-					node_add = true;
-				}
+				let node_remove =
+					rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
+					(creature.nodes.len() as u8) >
+					creature::BOUNDS_NODE_COUNT.start;
 
-				// Have the same random chance to remove a random node
-				if rng.gen::<f32>() * CLIMB_ATTEMPTS as f32 <= 1.0 &&
-				   creature.nodes.len() as u8 >
-				   creature::BOUNDS_NODE_COUNT.start
-				{
-					node_remove = true;
-				}
+				let node_add =
+					rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
+					(creature.nodes.len() as u8) < creature::BOUNDS_NODE_COUNT.end;
+
+				let muscle_remove =
+					rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
+
+				let muscle_add =
+					rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
 
 				let mut new_creature =
 					OpMethodData::mutate(
 						creature,
-						rng,
+						&mut rng_new,
 						MUTABILITY_RATE,
 						node_add,
-						node_remove
+						node_remove,
+						muscle_add,
+						muscle_remove
 					);
 
 				physics::full_simulation_creature(&mut new_creature);
@@ -74,13 +77,58 @@ impl OptimisationMethod for HillClimbing {
 			}
 
 			new_creatures.sort_by(|a,b| b.cmp(a));
-			
+
 			if new_creatures[0].fitness > creature.fitness {
-				new_population.creatures.push(new_creatures[0].clone());
+				new_creatures[0].clone()
 			} else {
-				new_population.creatures.push(creature.clone());
+				creature.clone()
 			}
-		}
+		})
+		.collect_into(&mut new_population.creatures);
+
+		// for creature in &mut self.data.generations[self.data.gen].creatures {
+		// 	let mut new_creatures = Vec::with_capacity(CLIMB_ATTEMPTS);
+		// 	for _ in 0 .. CLIMB_ATTEMPTS {
+		// 		let mut node_add = false;
+		// 		let mut node_remove = false;
+
+		// 		// Have the random chance to add a node
+		// 		if rng.gen::<f32>() * CLIMB_ATTEMPTS as f32 <= 1.0 &&
+		// 		   creature.nodes.len() as u8 <=
+		// 		   creature::BOUNDS_NODE_COUNT.end - 1
+		// 		{
+		// 			node_add = true;
+		// 		}
+
+		// 		// Have the same random chance to remove a random node
+		// 		if rng.gen::<f32>() * CLIMB_ATTEMPTS as f32 <= 1.0 &&
+		// 		   creature.nodes.len() as u8 >
+		// 		   creature::BOUNDS_NODE_COUNT.start
+		// 		{
+		// 			node_remove = true;
+		// 		}
+
+		// 		let mut new_creature =
+		// 			OpMethodData::mutate(
+		// 				creature,
+		// 				rng,
+		// 				MUTABILITY_RATE,
+		// 				node_add,
+		// 				node_remove
+		// 			);
+
+		// 		physics::full_simulation_creature(&mut new_creature);
+		// 		new_creatures.push(new_creature);
+		// 	}
+
+		// 	new_creatures.sort_by(|a,b| b.cmp(a));
+
+		// 	if new_creatures[0].fitness > creature.fitness {
+		// 		new_population.creatures.push(new_creatures[0].clone());
+		// 	} else {
+		// 		new_population.creatures.push(creature.clone());
+		// 	}
+		// }
 
 		new_population.sort_by_fittest();
 

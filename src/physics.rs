@@ -1,8 +1,8 @@
 use creature::{self, Creature, Node};
 use population::Population;
 
-pub const GRAVITY: f32 = 0.25;
-pub const RESISTANCE: f32 = 0.98;
+pub const GRAVITY: f32 = 0.3;
+pub const RESISTANCE: f32 = 0.97;
 pub const SIM_LENGTH: u32 = 900; // 60 frames per second for 15 seconds
 
 pub fn full_simulation_population(population: &mut Population) {
@@ -83,9 +83,9 @@ pub fn wall_collision(node: &mut Node) {
 	let y = node.y + creature::NODE_RADIUS;
 	// Y position in the world is 0, so anything above that means it's
 	// colliding
-	if y >= 256.0 {
+	if y >= creature::BOUNDS_NODE_Y.end {
 		// So the node doesn't get actually drawn in the ground
-		node.y = 256.0 - creature::NODE_RADIUS;
+		node.y = creature::BOUNDS_NODE_Y.end - creature::NODE_RADIUS;
 		// Reset the velocity of Y as we're against the ground
 		node.vy = 0.0;
 		node.x -= node.vx * node.friction;

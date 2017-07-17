@@ -1,4 +1,4 @@
-use rand::{Rng, StdRng};
+use rand::{Rng, ThreadRng};
 use std::ops::Range;
 use creature::{self, Creature};
 use population::Population;
@@ -17,17 +17,19 @@ pub struct OpMethodData {
 	pub gen: usize,
 	pub gen_time: Vec<u64>,
 	pub spectate_creature: usize,
-	pub title: String
+	pub title: String,
+	pub print: bool
 }
 
 impl OpMethodData {
-	pub fn new(generations: Vec<Population>, title: String) -> OpMethodData {
+	pub fn new(generations: Vec<Population>, title: String, print: bool) -> OpMethodData {
 		OpMethodData {
 			generations: generations,
 			gen: 0,
 			gen_time: Vec::new(),
 			spectate_creature: 0,
-			title: title
+			title: title,
+			print: print
 		}
 	}
 
@@ -47,6 +49,28 @@ impl OpMethodData {
 			if fit < min { min = fit; }
 		}
 		min
+	}
+
+	// Returns a tuple containing the generation of which the
+	// fittest creature in the entire data structure exists
+	pub fn generations_get_fittest_gen(&self) -> usize {
+		let mut max_gen = 0;
+		let mut max = 0.0;
+		for gen in 0 .. self.generations.len() {
+			let fit = self.generations[gen].fittest().fitness;
+			if fit > max { max = fit; max_gen = gen; }
+		}
+		max_gen
+	}
+
+	pub fn generations_get_weakest_gen(&self) -> usize {
+		let mut min_gen = 0;
+		let mut min = 0.0;
+		for gen in 0 .. self.generations.len() {
+			let fit = self.generations[gen].weakest().fitness;
+			if fit < min { min = fit; min_gen = gen; }
+		}
+		min_gen
 	}
 
 	pub fn creature_get_fittest (&self, gen: usize) -> &Creature {
@@ -73,10 +97,12 @@ impl OpMethodData {
 
 	pub fn mutate(
 		creature: &Creature,
-		rng: &mut StdRng,
+		rng: &mut ThreadRng,
 		rate: f32,
 		node_add: bool,
-		node_remove: bool
+		node_remove: bool,
+		muscle_add: bool,
+		muscle_remove: bool
 	) -> Creature {
 		// Start by cloning the original creature so we can modify the values
 		// of the new one
@@ -105,8 +131,8 @@ impl OpMethodData {
 
 			node.friction = OpMethodData::mutate_clamp(
 				node.friction,
-				rate, 
-				creature::BOUNDS_NODE_FRICTION, 
+				rate,
+				creature::BOUNDS_NODE_FRICTION,
 				rng
 			);
 		}
@@ -122,6 +148,17 @@ impl OpMethodData {
 			new_creature.nodes.remove(node);
 		}
 
+		// Have the random chance to add a muscle
+		if muscle_add {
+			new_creature.muscles.push(Creature::add_muscle_random(&new_creature.nodes, rng));
+		}
+
+		// Have the same random chance to remove a random muscle
+		if muscle_remove {
+			let muscle = rng.gen_range(0, new_creature.muscles.len());
+			new_creature.muscles.remove(muscle);
+		}
+
 		// Make sure any nodes and muscles we've mutated/crossed over did not
 		// leave any node by itself
 		Creature::check_lonely_nodes(
@@ -132,8 +169,9 @@ impl OpMethodData {
 
 		// Now just make sure there are no muscles creating a
 		// cycle in the graph
-		new_creature.muscles =
-			Creature::check_colliding_muscles(&new_creature.muscles);
+		new_creature.muscles = Creature::check_colliding_muscles(
+			&new_creature.muscles
+		);
 
 		// Do the same process as above by for the muscles.
 		for muscle in &mut new_creature.muscles {
@@ -178,7 +216,7 @@ impl OpMethodData {
 		value: f32,
 		rate: f32,
 		range: Range<f32>,
-		rng: &mut StdRng
+		rng: &mut ThreadRng
 	) -> f32 {
 		(value + rng.gen_range(-rate, rate)).max(range.start).min(range.end)
 	}
@@ -187,7 +225,7 @@ impl OpMethodData {
 		value: u32,
 		rate: f32,
 		range: Range<u32>,
-		rng: &mut StdRng
+		rng: &mut ThreadRng
 	) -> u32 {
 		::std::cmp::max(
 			range.start,
@@ -200,7 +238,7 @@ impl OpMethodData {
 }
 
 pub trait OptimisationMethod {
-	fn generation_single (&mut self, rng: &mut StdRng) -> GenResult;
+	fn generation_single (&mut self) -> GenResult;
 	fn creature_get      (&mut self, gen: usize, idx: usize) -> &mut Creature;
 	fn get_data_mut      (&mut self) -> &mut OpMethodData;
 	fn get_data          (&self) -> &OpMethodData;

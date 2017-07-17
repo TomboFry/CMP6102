@@ -4,7 +4,7 @@ use piston::input::mouse::MouseButton;
 use conrod::text::font;
 use gui::GUIState;
 use modal::Modal;
-use rand::{Rng, StdRng};
+use rand::{self, Rng, ThreadRng};
 use std::io::prelude::*;
 use std::fs::File;
 
@@ -26,6 +26,7 @@ pub struct UIData {
 
 	// Whether the window runs in complete fullscreen mode or not
 	pub fullscreen: bool, pub changes: bool,
+	pub print: bool,
 
 	// Window title (and main menu title)
 	pub title: &'static str,
@@ -34,7 +35,7 @@ pub struct UIData {
 	pub gui_state: GUIState,
 
 	// Rng object to create random numbers
-	pub rng: StdRng,
+	pub rng: ThreadRng,
 
 	// Generation Test Options
 	pub generation_size: usize,
@@ -66,57 +67,66 @@ impl UIData {
 		fs_wh: (u32, u32),
 		frames: u32
 	) -> Self {
-		// First attempt to open the settings file to determine whether we
-		// should be in fullscreen mode or not.
-		let file_open = File::open("settings.txt");
+
 		// Set default to false in case file does not exist.
 		let mut fullscreen = false;
+		let mut print = false;
+
+		// First attempt to open the settings file to determine whether we
+		// should be in fullscreen mode or not.
+		let file_open = File::open("fullscreen.txt");
 		match file_open {
 			Ok(mut file) => {
 				let mut contents = String::new();
 				file.read_to_string(&mut contents)
-				    .expect("Although the file exists, could not read contents of settings.txt");
+				    .expect("Although the file exists, could not read contents of fullscreen.txt");
 				fullscreen = if contents == "true" { true } else { false };
+			},
+			_ => {},
+		}
+
+		// First attempt to open the settings file to determine whether we
+		// should be in fullscreen mode or not.
+		let file_open = File::open("print.txt");
+		match file_open {
+			Ok(mut file) => {
+				let mut contents = String::new();
+				file.read_to_string(&mut contents)
+				    .expect("Although the file exists, could not read contents of print.txt");
+				print = if contents == "true" { true } else { false };
 			},
 			_ => {},
 		}
 
 		let (width, height) = if fullscreen { fs_wh } else { win_wh };
 
-		// Create a new random thread
-		match StdRng::new() {
-			// Very unlikely to fail, but just in case it does, this will close
-			// the program before it even really begins
-			Err(err) => {
-				panic!("{}", err);
-			},
-			// Create the default program settings
-			Ok(val) => UIData {
-				mouse_x: 0.0, mouse_y: 0.0,
-				mouse_left_down: false, mouse_right_down: false,
-				width: width, height: height, fps: frames,
-				fullscreen: fullscreen, changes: false,
-				title: title,
-				gui_state: GUIState::Menu,
-				rng: val,
-				generation_size: 100,
-				use_genetic_algorithm: true,
-				use_simulated_annealing: false,
-				use_hill_climbing: false,
-				total_generations: 0,
-				spectate_method: 0,
-				spectate_generation: 0,
-				spectate_creature: 0,
-				draw_simulation: false,
-				simulation_frame: 0,
-				process_generations: 0,
-				process_generations_total: 0,
-				current_fitness: 0.0,
-				gen_do: 1,
-				optmethods: Vec::with_capacity(3),
-				modal_visible: false,
-				modal_struct: None
-			}
+		// Return a new struct with all the default data in.
+		UIData {
+			mouse_x: 0.0, mouse_y: 0.0,
+			mouse_left_down: false, mouse_right_down: false,
+			width: width, height: height, fps: frames,
+			fullscreen: fullscreen, changes: false,
+			print: print,
+			title: title,
+			gui_state: GUIState::Menu,
+			rng: rand::thread_rng(), // Create a new random thread
+			generation_size: 100,
+			use_genetic_algorithm: true,
+			use_simulated_annealing: false,
+			use_hill_climbing: false,
+			total_generations: 0,
+			spectate_method: 0,
+			spectate_generation: 0,
+			spectate_creature: 0,
+			draw_simulation: false,
+			simulation_frame: 0,
+			process_generations: 0,
+			process_generations_total: 0,
+			current_fitness: 0.0,
+			gen_do: 10,
+			optmethods: Vec::with_capacity(3),
+			modal_visible: false,
+			modal_struct: None
 		}
 	}
 
@@ -183,7 +193,6 @@ impl UIData {
 		// If generations are required to be tested and evolved, do it here.
 		if !self.modal_visible && self.process_generations > 0 {
 			self.do_generation();
-			self.process_generations -= 1;
 		}
 	}
 
@@ -193,14 +202,20 @@ impl UIData {
 		if self.changes {
 			self.changes = false;
 
-			let mut file = File::create("settings.txt").unwrap();
+			let mut file = File::create("fullscreen.txt").unwrap();
 			file.write_all(
 				if self.fullscreen { b"true" } else { b"false" }
 			).unwrap();
+
+			let mut file_print = File::create("print.txt").unwrap();
+			file_print.write_all(
+				if self.print { b"true" } else { b"false" }
+			).unwrap();
+
 			self.modal_new(
 				"Restart Required".to_string(),
 				"In order to change to fullscreen, a restart of
-				this application is required.".to_string(),
+this application is required.".to_string(),
 				None,
 				None
 			);
@@ -210,6 +225,48 @@ impl UIData {
 			#[cfg(unix)] Command::new("/proc/self/exe").exec();
 		} else {
 			self.gui_state = GUIState::Menu;
+		}
+	}
+
+	pub fn export_data(&mut self) {
+		let mut buffer = File::create("export.csv").unwrap();
+		for method in 0 .. self.optmethods.len() {
+			let gen_size = self.generation_size;
+			let data = self.optmethods[method].get_data();
+			let mut generation = 0;
+			write!(buffer, "{},Lowest,Q1,Avg.,Q3,Highest\n", data.title);
+			for gen in &data.generations {
+				let min = gen_size - 1;
+				let q1 = (gen_size as f64 * 0.75).round() as usize;
+				let q3 = (gen_size as f64 * 0.25).round() as usize;
+				let max = 0;
+				write!(
+					buffer,
+					"{}, {}, {}, {}, {}, {}\n",
+					generation,
+					gen.creatures[min].fitness,
+					gen.creatures[q1].fitness,
+					gen.fitness_average(),
+					gen.creatures[q3].fitness,
+					gen.creatures[max].fitness
+				);
+				generation += 1;
+			}
+		}
+	}
+
+	pub fn export_data_full(&mut self) {
+		let mut buffer = File::create("export_full.csv").unwrap();
+		for method in 0 .. self.optmethods.len() {
+			let data = self.optmethods[method].get_data();
+			write!(buffer, "{}\n", data.title);
+			for gen in &data.generations {
+				for creature in &gen.creatures {
+					write!(buffer, "{},", creature.fitness as isize);
+				}
+				write!(buffer, "\n");
+			}
+			write!(buffer, "\n");
 		}
 	}
 
@@ -231,13 +288,13 @@ impl UIData {
 		let population = Population::new(self.generation_size, &mut self.rng);
 
 		if self.use_genetic_algorithm {
-			self.optmethods.push(GeneticAlgorithm::new(population.clone()));
+			self.optmethods.push(GeneticAlgorithm::new(population.clone(), self.print));
 		}
 		if self.use_hill_climbing {
-			self.optmethods.push(HillClimbing::new(population.clone()));
+			self.optmethods.push(HillClimbing::new(population.clone(), self.print));
 		}
 		if self.use_simulated_annealing {
-			self.optmethods.push(SimulatedAnnealing::new(population));
+			self.optmethods.push(SimulatedAnnealing::new(population, self.print));
 		}
 
 		self.gui_state = GUIState::Generations;
@@ -255,9 +312,13 @@ impl UIData {
 	// Run a single generation, displaying a popup window if Simulated
 	// Annealing has reached its lowest temperature.
 	pub fn do_generation(&mut self) {
+		self.process_generations -= 1;
 		for method in 0 .. self.optmethods.len() {
-			match self.optmethods[method].generation_single(&mut self.rng) {
-				Err(err) => self.modal_new(err.0, err.1, None, None),
+			match self.optmethods[method].generation_single() {
+				Err(err) => {
+					self.process_generations = 0;
+					self.modal_new(err.0, err.1, None, None);
+				},
 				Ok(_) => {}
 			}
 		}
@@ -268,7 +329,7 @@ impl UIData {
 	}
 
 	// Change a specified OM's currently displayed creature to a specific
-	// index and generation  
+	// index and generation
 	pub fn set_creature(
 		&mut self,
 		method: usize,
@@ -318,5 +379,6 @@ pub struct Fonts {
 	pub regular: font::Id,
 	pub bold: font::Id,
 	pub italic: font::Id,
-	pub bold_italic: font::Id
+	pub bold_italic: font::Id,
+	pub fontawesome: font::Id
 }

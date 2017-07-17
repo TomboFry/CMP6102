@@ -74,6 +74,10 @@ fn main() {
 		bold_italic:
 			ui.fonts.insert_from_file(
 				assets.join("NotoSansUI-BoldItalic.ttf")
+			).expect("Error loading font"),
+		fontawesome:
+			ui.fonts.insert_from_file(
+				assets.join("FontAwesome.ttf")
 			).expect("Error loading font")
 	};
 
@@ -205,7 +209,7 @@ fn main() {
 			fn texture_from_image<T>(img: &T) -> &T { img };
 
 			// Usually, we call ui.draw_if_changed() and draw its
-			// primitives as such. However, this results in the UI 
+			// primitives as such. However, this results in the UI
 			// being drawn over by piston when there is nothing to
 			// change, so we must draw *every frame* using
 			// ui.draw()
@@ -295,8 +299,13 @@ pub fn creature_draw<G>(
 		// Set the colour of the node based on its friction
 		// Make the bounds of the ellipse centered on the node position,
 		// rather than off by a few pixels
-		
-		let col: [f32; 4] = [1.0 - node.friction, 0.0, 0.0, 1.0];
+
+		let col: [f32; 4] = [
+			1.0 - node.friction,
+			0.4 - (node.friction * 0.4),
+			0.25 - (node.friction * 0.25),
+			1.0
+		];
 
 		let rect: [f64; 4] = [
 			(node.x as f64 - radius) * scale + x,

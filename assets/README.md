@@ -1,3 +1,9 @@
+# FontAwesome
+
+Font Awesome by Dave Gandy - http://fontawesome.io
+
+This font also makes use of the SIL Open Font License as stated below.
+
 # Noto Sans Fonts
 
 This project makes use of the Noto Sans family, created by Google. The license for this font is below:
