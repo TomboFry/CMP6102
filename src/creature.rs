@@ -6,13 +6,13 @@ use rand::distributions::range::SampleRange;
 /// Constants to define a creatures lower and upper exclusive bounds.
 /// eg. a creature can have only 2 to 6 nodes. Any less and its useless,
 ///     any more and it's going to behave like a big mess.
-pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 7;
+pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 6;
 pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
 pub const BOUNDS_NODE_Y: Range<f32> = 0.0 .. 256.0;
-pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.1 .. 0.95;
+pub const BOUNDS_NODE_FRICTION: Range<f32> = 0.1 .. 0.92;
 pub const BOUNDS_MUSCLE_STRENGTH: Range<f32> = 1.0 .. 10.0;
-pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 40 .. 120;
-pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 40 .. 120;
+pub const BOUNDS_MUSCLE_TIME_EXTENDED: Range<u32> = 30 .. 100;
+pub const BOUNDS_MUSCLE_TIME_CONTRACTED: Range<u32> = 30 .. 100;
 
 pub const BOUNDS_MUSCLE_LENGTH: Range<f32> = 0.75 .. 1.2;
 pub const NODE_RADIUS: f32 = 16.0;

@@ -1,5 +1,5 @@
 use population::Population;
-use creature::{self, Creature, Node, Muscle};
+use creature::{Creature, Node, Muscle};
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
 use physics;
 use rand::{self, Rng, ThreadRng};
@@ -7,7 +7,6 @@ use time;
 use rayon::prelude::*;
 
 pub const MUTABILITY_RATE:  f32 = 0.05;
-pub const PROB_NODE_CHANGE: f32 = 8.0;  // will be 1 / x
 
 pub struct GeneticAlgorithm {
 	pub data: OpMethodData
@@ -129,7 +128,6 @@ impl OptimisationMethod for GeneticAlgorithm {
 		let time_start = time::precise_time_ns() / 1_000_000;
 
 		// Loop until we reach the size of a population
-
 		(0 .. gen_size)
 		.into_par_iter()
 		.map(|_| {
@@ -146,28 +144,12 @@ impl OptimisationMethod for GeneticAlgorithm {
 				&mut rng_new
 			);
 
-			let node_remove =
-				rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-				(child.nodes.len() as u8) > creature::BOUNDS_NODE_COUNT.start;
-
-			let node_add =
-				rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-				(child.nodes.len() as u8) < creature::BOUNDS_NODE_COUNT.end;
-
-			let muscle_remove = rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
-
-			let muscle_add = rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
-
 			// Mutate the child ever so slightly so it's not just the same
 			// as the parents
 			child = OpMethodData::mutate(
 				&child,          // Creature to mutate
 				&mut rng_new,    // The RNG thread to create random nums with
-				MUTABILITY_RATE,
-				node_add,        // Whether we should add a node
-				node_remove,     // Whether we should remove a node
-				muscle_add,      // Whether we should add a muscle
-				muscle_remove    // Whether we should remove a muscle
+				MUTABILITY_RATE
 			);
 
 			physics::full_simulation_creature(&mut child);
@@ -177,40 +159,6 @@ impl OptimisationMethod for GeneticAlgorithm {
 			child
 		})
 		.collect_into(&mut new_population.creatures);
-
-		// for _ in 0 .. gen_size {
-		// 	// Select two random-ish creatures
-		// 	let creature_a = self.selection(rng);
-		// 	let creature_b = self.selection(rng);
-
-		// 	// Breed them to make a new child
-		// 	let mut child = GeneticAlgorithm::crossover(
-		// 		creature_a,
-		// 		creature_b,
-		// 		rng
-		// 	);
-
-		// 	let remove =
-		// 		rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-		// 		(child.nodes.len() as u8) > creature::BOUNDS_NODE_COUNT.start;
-
-		// 	let add =
-		// 		rng.gen::<f32>() * PROB_NODE_ADD <= 1.0 &&
-		// 		(child.nodes.len() as u8) < creature::BOUNDS_NODE_COUNT.end;
-
-		// 	// Mutate the child ever so slightly so it's not just the same
-		// 	// as the parents
-		// 	child = OpMethodData::mutate(
-		// 		&child,          // Creature to mutate
-		// 		rng,             // The RNG thread to create random nums with
-		// 		MUTABILITY_RATE,
-		// 		add,             // Whether we should add a node
-		// 		remove           // Whether we should remove a node
-		// 	);
-
-		// 	// Finally add the child to the population of child creatures
-		// 	new_population.creatures.push(child);
-		// }
 
 		// After generating a new population we must calculate the fitness
 		// of each creature in a population.

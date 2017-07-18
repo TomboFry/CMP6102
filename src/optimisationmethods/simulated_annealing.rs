@@ -1,13 +1,12 @@
 use population::Population;
-use creature::{self, Creature};
+use creature::Creature;
 use optimisationmethods::{GenResult, OptimisationMethod, OpMethodData};
-use rand::{self, Rng};
+use rand;
 use time;
 use physics;
 use rayon::prelude::*;
 
 pub const MUTABILITY_RATE: f32 = 1.0;
-pub const PROB_NODE_CHANGE: f32 = 8.0; // will be 1 / x
 pub const TEMP_HIGH: f64 = 100.0;
 pub const TEMP_LOW: f64 = 0.1;
 pub const TEMP_ALPHA: f64 = 0.995;
@@ -70,29 +69,11 @@ impl OptimisationMethod for SimulatedAnnealing {
 		.map(|creature| {
 			let mut rng_new = rand::thread_rng();
 
-			let node_remove =
-				rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-				(creature.nodes.len() as u8) >
-				creature::BOUNDS_NODE_COUNT.start;
-
-			let node_add =
-				rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-				(creature.nodes.len() as u8) < creature::BOUNDS_NODE_COUNT.end;
-
-			let muscle_remove = rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
-
-			let muscle_add = rng_new.gen::<f32>() * PROB_NODE_CHANGE <= 1.0;
-
-			let mut new_creature =
-				OpMethodData::mutate(
-					&creature,
-					&mut rng_new,
-					MUTABILITY_RATE * percentage as f32,
-					node_add,
-					node_remove,
-					muscle_add,
-					muscle_remove
-				);
+			let mut new_creature = OpMethodData::mutate(
+				&creature,
+				&mut rng_new,
+				MUTABILITY_RATE * percentage as f32
+			);
 
 			physics::full_simulation_creature(&mut new_creature);
 
@@ -108,7 +89,6 @@ impl OptimisationMethod for SimulatedAnnealing {
 
 		// SIMULATED ANNEALING MAGIC FINISHES HERE ONWARDS
 		let time_end = time::precise_time_ns() / 1_000_000;
-
 
 		// After having created the new population, sort the current
 		// population by fittest, add the new population to the optimisation

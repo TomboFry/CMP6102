@@ -1,8 +1,9 @@
 use creature::{self, Creature, Node};
 use population::Population;
+use std::ops::Range;
 
 pub const GRAVITY: f32 = 0.3;
-pub const RESISTANCE: f32 = 0.97;
+pub const RESISTANCE: f32 = 0.98;
 pub const SIM_LENGTH: u32 = 900; // 60 frames per second for 15 seconds
 
 pub fn full_simulation_population(population: &mut Population) {
@@ -102,6 +103,10 @@ pub fn wall_collision(node: &mut Node) {
 
 pub fn lerp(v0: f32, v1: f32, t: f32) -> f32 {
 	v0 * (1.0 - t) + v1 * t
+}
+
+pub fn clamp(value: f32, range: Range<f32>) -> f32 {
+	value.max(range.start).min(range.end)
 }
 
 #[cfg(test)]
