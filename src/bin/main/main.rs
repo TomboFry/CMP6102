@@ -7,6 +7,7 @@ extern crate find_folder;
 extern crate rand;
 extern crate time;
 extern crate cmp6102;
+extern crate open;
 
 mod gui;
 mod app;
@@ -131,10 +132,6 @@ fn main() {
 		// Finally, draw the window to the screen.
 		window.draw_2d(&evt, |context, graphics| {
 			clear(color::WHITE, graphics);
-
-			/*
-				CONROD UI WIDGETS
-			*/
 
 			match app.gui_state {
 			GUIState::Spectate => {
@@ -262,6 +259,7 @@ fn main() {
 		});
 	}
 }
+
 /// Draws a single creature to the screen
 pub fn creature_draw<G>(
 	creature: &Creature, x: f64, y: f64, scale: f64,

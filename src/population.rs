@@ -67,6 +67,8 @@ impl Population {
 }
 
 mod test {
+	use population::*;
+	use rand;
 
 	#[test]
 	fn new_pop() {

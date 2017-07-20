@@ -22,8 +22,6 @@ impl GeneticAlgorithm {
 	fn selection (&self, rng: &mut ThreadRng) -> &Creature {
 		// Tournament Selection
 		let selection_size = 3;
-			//(self.data.generations[self.data.gen].creatures.len() as f64 *
-			// 0.02) as usize + 1;
 
 		let mut selection: Vec<&Creature> = Vec::with_capacity(selection_size);
 
@@ -67,14 +65,14 @@ impl GeneticAlgorithm {
 			if i >= start && i <= end {
 				// If the current index matches the range of creature clone
 				//   its node into the vector
-				return creature_a.nodes[i].clone();
+				creature_a.nodes[i].clone()
 			} else if creature_b.nodes.len() > i {
 				// Otherwise clone the node from creature B
-				return creature_b.nodes[i].clone();
+				creature_b.nodes[i].clone()
 			} else {
 				// As a failsafe, just clone the node from creature A as it is
 				// guaranteed to be within range.
-				return creature_a.nodes[i].clone();
+				creature_a.nodes[i].clone()
 			}
 		}).collect::<Vec<Node>>();
 
@@ -97,11 +95,11 @@ impl GeneticAlgorithm {
 			// points to are valid.
 			let len = child.nodes.len();
 			if j >= start && j <= end {
-				return creature_a.muscles[j].range(len, rng);
+				creature_a.muscles[j].range(len, rng)
 			} else if creature_b.muscles.len() > j {
-				return creature_b.muscles[j].range(len, rng);
+				creature_b.muscles[j].range(len, rng)
 			} else {
-				return creature_a.muscles[j].range(len, rng);
+				creature_a.muscles[j].range(len, rng)
 			}
 		}).collect::<Vec<Muscle>>();
 

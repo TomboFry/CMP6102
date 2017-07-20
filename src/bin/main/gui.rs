@@ -4,6 +4,7 @@ use conrod::{widget, UiCell, Colorable, Positionable,
 	         Widget, Sizeable, Labelable, Borderable};
 use app::{UIData, Fonts};
 use cmp6102::physics::{self, lerp};
+use open;
 
 // Create all the application's GUI widgets here:
 widget_ids! {
@@ -161,7 +162,7 @@ pub fn gui (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	}
 
 	if !app.modal_visible && app.process_generations > 0 &&
-	   app.process_generations_total > 10
+	   app.process_generations_total > 20
 	{
 		let progress =
 			(app.process_generations_total as f32 -
@@ -559,10 +560,10 @@ fn menu_generations(
 	{
 		// Display a popup window if we are about to process a large number
 		// of creatures
-		if gen_do > 10 {
+		if gen_do > 20 {
 			app.modal_new(
 				"This could take a while...".to_string(),
-				"You are about to process more than 10 generations
+				"You are about to process more than 20 generations
 in a single click, so be aware this may take a long
 time to process.".to_string(),
 				None,
@@ -586,6 +587,7 @@ time to process.".to_string(),
 		.set(ids.gen_btn_export, ui)
 	{
 		app.export_data();
+		open::that("export.csv");
 	}
 
 	// Export Lowest, Fittest, and quartile fitness values
@@ -601,6 +603,7 @@ time to process.".to_string(),
 		.set(ids.gen_btn_export_full, ui)
 	{
 		app.export_data_full();
+		open::that("export_full.csv");
 	}
 
 	// Set the currently viewed generation

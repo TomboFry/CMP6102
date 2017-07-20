@@ -321,7 +321,8 @@ impl Muscle {
 
 #[cfg(test)]
 mod test {
-	use creature::*;
+	use rand;
+	use creature::{self, Creature, Node, Muscle, NodePair};
 
 	/// Create an empty creature, with no nodes or muscles
 	#[test]
@@ -527,8 +528,8 @@ mod test {
 		// Upon initial creation, make sure the fitness is smaller than the
 		// maximum X bounds, pivoted around 0.
 		assert!(
-			fitness < (BOUNDS_NODE_X.end * 0.5) &&
-			fitness >= -(BOUNDS_NODE_X.end * 0.5)
+			fitness < (creature::BOUNDS_NODE_X.end * 0.5) &&
+			fitness >= -(creature::BOUNDS_NODE_X.end * 0.5)
 		);
 	}
 
@@ -567,7 +568,7 @@ mod test {
 		//  = 32 - (256 / 2)
 		//  = 32 - 128
 		//  = -96
-		assert_eq!(fitness, -96.0);
+		assert_eq!(fitness, 32.0 - (creature::BOUNDS_NODE_X.end * 0.5));
 	}
 
 	/// Make sure a single created creature has properties within the
@@ -578,34 +579,34 @@ mod test {
 		let creature = Creature::new(&mut rng);
 
 		assert!(
-		  (creature.nodes.len() < BOUNDS_NODE_COUNT.end as usize) &&
-		  (creature.nodes.len() >= BOUNDS_NODE_COUNT.start as usize)
+		  (creature.nodes.len() < creature::BOUNDS_NODE_COUNT.end as usize) &&
+		  (creature.nodes.len() >= creature::BOUNDS_NODE_COUNT.start as usize)
 		);
 
 		for node in creature.nodes {
-			assert!((node.x >= BOUNDS_NODE_X.start) &&
-			        (node.x < BOUNDS_NODE_X.end));
-			assert!((node.y >= BOUNDS_NODE_Y.start) &&
-			        (node.y < BOUNDS_NODE_Y.end));
-			assert!((node.friction >= BOUNDS_NODE_FRICTION.start) &&
-			        (node.friction < BOUNDS_NODE_FRICTION.end));
+			assert!((node.x >= creature::BOUNDS_NODE_X.start) &&
+			        (node.x < creature::BOUNDS_NODE_X.end));
+			assert!((node.y >= creature::BOUNDS_NODE_Y.start) &&
+			        (node.y < creature::BOUNDS_NODE_Y.end));
+			assert!((node.friction >= creature::BOUNDS_NODE_FRICTION.start) &&
+			        (node.friction < creature::BOUNDS_NODE_FRICTION.end));
 		}
 		for muscle in creature.muscles {
 			assert!(
-				(muscle.strength >= BOUNDS_MUSCLE_STRENGTH.start) &&
-				(muscle.strength < BOUNDS_MUSCLE_STRENGTH.end)
+				(muscle.strength >= creature::BOUNDS_MUSCLE_STRENGTH.start) &&
+				(muscle.strength < creature::BOUNDS_MUSCLE_STRENGTH.end)
 			);
 
 			assert!(
-				(muscle.time_extended >= BOUNDS_MUSCLE_TIME_EXTENDED.start) &&
-				(muscle.time_extended < BOUNDS_MUSCLE_TIME_EXTENDED.end)
+				(muscle.time_extended >= creature::BOUNDS_MUSCLE_TIME_EXTENDED.start) &&
+				(muscle.time_extended < creature::BOUNDS_MUSCLE_TIME_EXTENDED.end)
 			);
 
 			assert!(
 				(muscle.time_contracted >=
-				 BOUNDS_MUSCLE_TIME_CONTRACTED.start) &&
+				 creature::BOUNDS_MUSCLE_TIME_CONTRACTED.start) &&
 				(muscle.time_contracted <
-				 BOUNDS_MUSCLE_TIME_CONTRACTED.end)
+				 creature::BOUNDS_MUSCLE_TIME_CONTRACTED.end)
 			);
 		}
 	}

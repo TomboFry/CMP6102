@@ -109,6 +109,36 @@ impl OpMethodData {
 
 		new_creature.reset_position();
 
+		// Have the same random chance to remove a random node
+		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
+			(creature.nodes.len() as u8) >
+			creature::BOUNDS_NODE_COUNT.start
+		{
+			let node = rng.gen_range(0, new_creature.nodes.len());
+			new_creature.nodes.remove(node);
+		}
+
+		// Have the random chance to add a node
+		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
+			(creature.nodes.len() as u8) <
+			creature::BOUNDS_NODE_COUNT.end
+		{
+			new_creature.nodes.push(Creature::add_node_random(rng));
+		}
+
+		// Have the same random chance to remove a random muscle
+		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 {
+			let muscle = rng.gen_range(0, new_creature.muscles.len());
+			new_creature.muscles.remove(muscle);
+		}
+
+		// Have the random chance to add a muscle
+		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 {
+			new_creature.muscles.push(
+				Creature::add_muscle_random(&new_creature.nodes, rng)
+			);
+		}
+
 		// For each node in the creature
 		for node in &mut new_creature.nodes {
 			// Modify the values of each property by the specified rate, but
@@ -134,36 +164,6 @@ impl OpMethodData {
 				creature::BOUNDS_NODE_FRICTION,
 				rng
 			);
-		}
-
-		// Have the random chance to add a node
-		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-			(creature.nodes.len() as u8) <
-			creature::BOUNDS_NODE_COUNT.end
-		{
-			new_creature.nodes.push(Creature::add_node_random(rng));
-		}
-
-		// Have the same random chance to remove a random node
-		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
-			(creature.nodes.len() as u8) >
-			creature::BOUNDS_NODE_COUNT.start
-		{
-			let node = rng.gen_range(0, new_creature.nodes.len());
-			new_creature.nodes.remove(node);
-		}
-
-		// Have the random chance to add a muscle
-		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 {
-			new_creature.muscles.push(
-				Creature::add_muscle_random(&new_creature.nodes, rng)
-			);
-		}
-
-		// Have the same random chance to remove a random muscle
-		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 {
-			let muscle = rng.gen_range(0, new_creature.muscles.len());
-			new_creature.muscles.remove(muscle);
 		}
 
 		// Make sure any nodes and muscles we've mutated/crossed over did not

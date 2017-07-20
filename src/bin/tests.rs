@@ -92,9 +92,9 @@ fn main () {
 
 		for mtd in &optmethods {
 			match *mtd {
-				"GA" => opt.push(GeneticAlgorithm::new(population.clone())),
-				"HC" => opt.push(HillClimbing::new(population.clone())),
-				"SA" => opt.push(SimulatedAnnealing::new(population.clone())),
+				"GA" => opt.push(GeneticAlgorithm::new(population.clone(), true)),
+				"HC" => opt.push(HillClimbing::new(population.clone(), true)),
+				"SA" => opt.push(SimulatedAnnealing::new(population.clone(), true)),
 				_ => {}
 			}
 		}

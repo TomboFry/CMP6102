@@ -1,10 +1,9 @@
 use piston_window::*;
-use piston::input::{Button, Motion};
-use piston::input::mouse::MouseButton;
+use piston::input;
 use conrod::text::font;
 use gui::GUIState;
 use modal::Modal;
-use rand::{self, Rng, ThreadRng};
+use rand::{self, ThreadRng};
 use std::io::prelude::*;
 use std::fs::File;
 
@@ -15,11 +14,6 @@ use cmp6102::optimisationmethods::genetic_algorithm::GeneticAlgorithm;
 use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
 
 pub struct UIData {
-	// Mouse position
-	pub mouse_x: f64, pub mouse_y: f64,
-
-	// Is the mouse currently being pressed?
-	pub mouse_left_down: bool, pub mouse_right_down: bool,
 
 	// Window dimensions and speed to run at
 	pub width: u32, pub height: u32, pub fps: u32,
@@ -79,7 +73,8 @@ impl UIData {
 			Ok(mut file) => {
 				let mut contents = String::new();
 				file.read_to_string(&mut contents)
-				    .expect("Although the file exists, could not read contents of fullscreen.txt");
+				    .expect("Although the file exists, could not read
+contents of fullscreen.txt");
 				fullscreen = if contents == "true" { true } else { false };
 			},
 			_ => {},
@@ -92,7 +87,8 @@ impl UIData {
 			Ok(mut file) => {
 				let mut contents = String::new();
 				file.read_to_string(&mut contents)
-				    .expect("Although the file exists, could not read contents of print.txt");
+				    .expect("Although the file exists, could not read
+contents of print.txt");
 				print = if contents == "true" { true } else { false };
 			},
 			_ => {},
@@ -102,8 +98,6 @@ impl UIData {
 
 		// Return a new struct with all the default data in.
 		UIData {
-			mouse_x: 0.0, mouse_y: 0.0,
-			mouse_left_down: false, mouse_right_down: false,
 			width: width, height: height, fps: frames,
 			fullscreen: fullscreen, changes: false,
 			print: print,
@@ -130,7 +124,7 @@ impl UIData {
 		}
 	}
 
-	// Create a new popup window with a title, message, and button labels
+	/// Create a new popup window with a title, message, and button labels
 	pub fn modal_new(
 		&mut self,
 		title: String,
@@ -143,44 +137,22 @@ impl UIData {
 			Some(Modal::new(title, message, btn_a_label, btn_b_label));
 	}
 
-	// Destroy the currently displayed popup window
+	/// Destroy the currently displayed popup window
 	pub fn modal_close(&mut self) {
 		self.modal_visible = false;
 		self.modal_struct = None;
 	}
 
-	// Runs every frame, checks for button presses and window resize events
+	/// Runs every frame, checks for button presses and window resize events
 	pub fn event(&mut self, event: &Input) {
+
+		// If generations are required to be tested and evolved, do it here.
+		if !self.modal_visible && self.process_generations > 0 {
+			self.do_generation();
+			return;
+		}
+
 		match event {
-			// Mouse and Keyboard Down
-			&Input::Press(button) => {
-				if button == Button::Mouse(MouseButton::Left) {
-					self.mouse_left_down = true;
-				} else if button == Button::Mouse(MouseButton::Right) {
-					self.mouse_right_down = true;
-				}
-			},
-
-			// Mouse and Keyboard Up
-			&Input::Release(button) => {
-				if button == Button::Mouse(MouseButton::Left) {
-					self.mouse_left_down = false;
-				} else if button == Button::Mouse(MouseButton::Right) {
-					self.mouse_right_down = false;
-				}
-			},
-
-			// Mouse and Scroll Change
-			&Input::Move(x) => {
-				match x {
-					Motion::MouseCursor(mx, my) => {
-						self.mouse_x = mx;
-						self.mouse_y = my;
-					},
-					_ => {}
-				}
-			},
-
 			// Window Resize
 			&Input::Resize(x, y) => {
 				self.width = x;
@@ -189,15 +161,10 @@ impl UIData {
 
 			_ => {}
 		};
-
-		// If generations are required to be tested and evolved, do it here.
-		if !self.modal_visible && self.process_generations > 0 {
-			self.do_generation();
-		}
 	}
 
-	// Save the fullscreen setting to `settings.txt`, also restarts/displays a
-	// message depending on the OS being used.
+	/// Save the fullscreen setting to `settings.txt`, also restarts/displays a
+	/// message depending on the OS being used.
 	pub fn settings_save(&mut self) {
 		if self.changes {
 			self.changes = false;
@@ -270,8 +237,8 @@ this application is required.".to_string(),
 		}
 	}
 
-	// Initialise optimisation method(s) with the same population and go to
-	// the generations screen
+	/// Initialise optimisation method(s) with the same population and go to
+	/// the generations screen
 	pub fn init_tests(&mut self) {
 		if !self.use_genetic_algorithm &&
 		   !self.use_hill_climbing &&
@@ -288,29 +255,37 @@ this application is required.".to_string(),
 		let population = Population::new(self.generation_size, &mut self.rng);
 
 		if self.use_genetic_algorithm {
-			self.optmethods.push(GeneticAlgorithm::new(population.clone(), self.print));
+			self.optmethods.push(
+				GeneticAlgorithm::new(population.clone(), self.print)
+			);
 		}
+
 		if self.use_hill_climbing {
-			self.optmethods.push(HillClimbing::new(population.clone(), self.print));
+			self.optmethods.push(
+				HillClimbing::new(population.clone(), self.print)
+			);
 		}
+
 		if self.use_simulated_annealing {
-			self.optmethods.push(SimulatedAnnealing::new(population, self.print));
+			self.optmethods.push(
+				SimulatedAnnealing::new(population, self.print)
+			);
 		}
 
 		self.gui_state = GUIState::Generations;
-		self.set_creature_random();
+		self.set_creature(0, 0, 0);
 		self.draw_simulation = false;
 	}
 
-	// Process multiple generations at once
-	// (Does not actually run the generations, this happens in `event()`)
+	/// Process multiple generations at once
+	/// (Does not actually run the generations, this happens in `event()`)
 	pub fn do_generations(&mut self, num: usize) {
 		self.process_generations = num;
 		self.process_generations_total = num;
 	}
 
-	// Run a single generation, displaying a popup window if Simulated
-	// Annealing has reached its lowest temperature.
+	/// Run a single generation, displaying a popup window if Simulated
+	/// Annealing has reached its lowest temperature.
 	pub fn do_generation(&mut self) {
 		self.process_generations -= 1;
 		for method in 0 .. self.optmethods.len() {
@@ -328,8 +303,8 @@ this application is required.".to_string(),
 		self.simulation_frame = 0;
 	}
 
-	// Change a specified OM's currently displayed creature to a specific
-	// index and generation
+	/// Change a specified OM's currently displayed creature to a specific
+	/// index and generation
 	pub fn set_creature(
 		&mut self,
 		method: usize,
@@ -345,14 +320,7 @@ this application is required.".to_string(),
 			    .fitness;
 	}
 
-	pub fn set_creature_random(&mut self) {
-		let index = self.rng.gen_range(0, self.generation_size as usize);
-		let gen = self.spectate_generation;
-		let mtd = self.spectate_method;
-		self.set_creature(mtd, index, gen);
-	}
-
-	// Reset the currently simulated creature to its default state.
+	/// Reset the currently simulated creature to its default state.
 	pub fn reset_simulation(&mut self) {
 		for method in &mut self.optmethods {
 			let mut data = method.get_data_mut();
@@ -363,8 +331,8 @@ this application is required.".to_string(),
 		self.simulation_frame = 0;
 	}
 
-	// Destroy all the currently used optimisation methods and settings used
-	// by the generations screen.
+	/// Destroy all the currently used optimisation methods and settings used
+	/// by the generations screen.
 	pub fn reset_optmethods(&mut self) {
 		self.optmethods.clear();
 		self.total_generations = 0;

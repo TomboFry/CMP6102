@@ -12,6 +12,7 @@ rand = "^0.3.15"
 time = "^0.1.36"
 clap = "^2.23.3"
 rayon = "0.7.0"
+open = "1.2.0"
 
 [[bin]]
 name = "main"
