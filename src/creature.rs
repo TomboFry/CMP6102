@@ -320,7 +320,7 @@ impl Muscle {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	use rand;
 	use creature::{self, Creature, Node, Muscle, NodePair};
 
@@ -611,6 +611,8 @@ mod test {
 		}
 	}
 
+	/// Make sure the function to return the distance between nodes calculates
+	/// the correct values
 	#[test]
 	fn node_distance() {
 		let node_a = Node {

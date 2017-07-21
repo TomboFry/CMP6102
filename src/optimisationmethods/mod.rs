@@ -250,3 +250,14 @@ pub trait OptimisationMethod {
 	fn get_data_mut      (&mut self) -> &mut OpMethodData;
 	fn get_data          (&self) -> &OpMethodData;
 }
+
+mod tests {
+	use rand;
+	use optimisationmethods::OptimisationMethod;
+
+	#[test]
+	#[should_panic]
+	fn testing() {
+		unimplemented!();
+	}
+}

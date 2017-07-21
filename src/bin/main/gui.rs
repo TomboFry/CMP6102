@@ -101,8 +101,7 @@ widget_ids! {
 		modal_canvas_bg,
 		modal_title,
 		modal_message,
-		modal_button_a,
-		modal_button_b,
+		modal_button,
 
 		// Progress Box Widgets
 		progress_overlay,
@@ -564,9 +563,7 @@ fn menu_generations(
 				"This could take a while...".to_string(),
 				"You are about to process more than 20 generations
 in a single click, so be aware this may take a long
-time to process.".to_string(),
-				None,
-				None
+time to process.".to_string()
 			);
 		}
 
@@ -985,7 +982,7 @@ fn menu_spectate (
 }
 
 fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
-	let mut action: u8 = 0;
+	let mut action = false;
 
 	// Only draw the popup window if we've already set one up.
 	if let Some(ref mut modal) = app.modal_struct {
@@ -1034,38 +1031,22 @@ fn draw_modal (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		// Left/"Accept" Button
 		for _ in widget::Button::new()
 			.color(COL_BTN_GO)
-			.label(&modal.button_a_label)
+			.label("Okay")
 			.label_color(COL_LBL)
 			.label_font_size(20)
 			.bottom_left_of(ids.modal_canvas_bg)
-			.w_h((modal.button_a_label.len() as f64 * 14.0) + 32.0, 48.0)
+			.w_h(88.0, 48.0)
 			.border(0.0)
-			.set(ids.modal_button_a, ui)
+			.set(ids.modal_button, ui)
 		{
-			action = 1;
-		}
-
-		// Right/"Cancel" Button
-		for _ in widget::Button::new()
-			.color(COL_BTN_STOP)
-			.label(&modal.button_b_label)
-			.label_color(COL_LBL)
-			.label_font_size(20)
-			.right_from(ids.modal_button_a, SPACING)
-			.w_h((modal.button_b_label.len() as f64 * 14.0) + 32.0, 48.0)
-			.border(0.0)
-			.set(ids.modal_button_b, ui)
-		{
-			action = 2;
+			action = true;
 		}
 	}
 
 	// Depending on which one we click, perform a different action.
 	// NOTE: I did not end up using either button to perform different
 	// tasks, so they have been left to do the same thing.
-	if action == 1 {
-		app.modal_close();
-	} else if action == 2 {
+	if action {
 		app.modal_close();
 	}
 }

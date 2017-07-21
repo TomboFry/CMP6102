@@ -44,7 +44,6 @@ pub struct UIData {
 	pub draw_simulation: bool,
 	pub simulation_frame: u32,
 	pub process_generations: usize, pub process_generations_total: usize,
-	pub current_fitness: f32,
 	pub gen_do: usize,
 	pub optmethods: Vec<Box<OptimisationMethod>>,
 
@@ -115,7 +114,6 @@ contents of print.txt");
 			simulation_frame: 0,
 			process_generations: 0,
 			process_generations_total: 0,
-			current_fitness: 0.0,
 			gen_do: 10,
 			optmethods: Vec::with_capacity(3),
 			modal_visible: false,
@@ -124,16 +122,9 @@ contents of print.txt");
 	}
 
 	/// Create a new popup window with a title, message, and button labels
-	pub fn modal_new(
-		&mut self,
-		title: String,
-		message: String,
-		btn_a_label: Option<String>,
-		btn_b_label: Option<String>
-	) {
+	pub fn modal_new(&mut self, title: String, message: String) {
 		self.modal_visible = true;
-		self.modal_struct =
-			Some(Modal::new(title, message, btn_a_label, btn_b_label));
+		self.modal_struct = Some(Modal::new(title, message));
 	}
 
 	/// Destroy the currently displayed popup window
@@ -186,9 +177,7 @@ contents of print.txt");
 			self.modal_new(
 				"Restart Required".to_string(),
 				"In order to change to fullscreen, a restart of
-this application is required.".to_string(),
-				None,
-				None
+this application is required.".to_string()
 			);
 
 			#[cfg(unix)] use std::process::Command;
@@ -255,9 +244,7 @@ this application is required.".to_string(),
 		{
 			return self.modal_new(
 				"Error".to_string(),
-				"Please select at least one optimisation method".to_string(),
-				None,
-				None
+				"Please select at least one optimisation method".to_string()
 			);
 		}
 
@@ -282,7 +269,7 @@ this application is required.".to_string(),
 		}
 
 		self.gui_state = GUIState::Generations;
-		self.set_creature(0, 0, 0);
+		self.spectate_creature = 0;
 		self.draw_simulation = false;
 	}
 
@@ -301,7 +288,7 @@ this application is required.".to_string(),
 			match self.optmethods[method].generation_single() {
 				Err(err) => {
 					self.process_generations = 0;
-					self.modal_new(err.0, err.1, None, None);
+					self.modal_new(err.0, err.1);
 				},
 				Ok(_) => {}
 			}
@@ -310,23 +297,6 @@ this application is required.".to_string(),
 		self.spectate_generation += 1;
 		self.total_generations += 1;
 		self.simulation_frame = 0;
-	}
-
-	/// Change a specified OM's currently displayed creature to a specific
-	/// index and generation
-	pub fn set_creature(
-		&mut self,
-		method: usize,
-		index: usize,
-		generation: usize
-	) {
-		self.reset_simulation();
-		let data = self.optmethods[method].get_data();
-		self.spectate_creature = index;
-		self.current_fitness =
-			data.generations[generation]
-			    .creatures[self.spectate_creature]
-			    .fitness;
 	}
 
 	/// Reset the currently simulated creature to its default state.

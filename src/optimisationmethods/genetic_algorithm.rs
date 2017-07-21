@@ -6,7 +6,7 @@ use rand::{self, Rng, ThreadRng};
 use time;
 use rayon::prelude::*;
 
-pub const MUTABILITY_RATE:  f32 = 0.05;
+pub const MUTABILITY_RATE: f32 = 0.05;
 
 pub struct GeneticAlgorithm {
 	pub data: OpMethodData
@@ -189,21 +189,82 @@ impl OptimisationMethod for GeneticAlgorithm {
 
 #[cfg(test)]
 mod test {
+	use rand;
+	use population::Population;
+	use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
+	use optimisationmethods::OptimisationMethod;
 
+	/// Run the generation function 10 times and make sure the average
+	/// population's fitness has increased. Run these 50 times to ensure
+	/// it's actually successful.
 	#[test]
-	#[should_panic]
-	fn genalg_fitness() {
-		unimplemented!();
+	fn fitness_10gens() {
+		let mut rng = rand::thread_rng();
 
-		// use population::Population;
-		// use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
-		// use optimisationmethods::OptimisationMethod;
+		for _ in 0 .. 10 {
+			// Create a new population of 100 creatures
+			let population = Population::new(100, &mut rng);
 
-		// let mut rng = ::tests::init();
-		// let pop = Population::new(1000, &mut rng);
-		// let genalg = GeneticAlgorithm::new(pop);
-		// let data = genalg.get_data();
-		// genalg.generation_single(&mut rng);
-		// let fitness_average_start = data.
+			// Initalise the genetic algorithm with the population
+			let mut ga = GeneticAlgorithm::new(population, false);
+
+			for _ in 0 .. 10 {
+				let _ = ga.generation_single();
+			}
+
+			let initial_fitness = ga.get_data().creature_get_average(0);
+			let final_fitness = ga.get_data().creature_get_average(10);
+
+			assert!(final_fitness > initial_fitness);
+		}
+	}
+
+	/// Run the tournament selection function three times and make sure each
+	/// creature returned by it has a fitness higher than the weakest creature.
+	#[test]
+	fn tournament_selection() {
+		let mut rng = rand::thread_rng();
+
+		// Create a new population of 100 creatures
+		let population = Population::new(100, &mut rng);
+
+		// Initalise the genetic algorithm with the population
+		let ga = GeneticAlgorithm::new(population, false);
+		let fitness_weakest = ga.get_data().creature_get_weakest(0).fitness;
+
+		// Test it 10 times to make sure it definitely works properly
+		for _ in 0 .. 10 {
+			let selection = ga.selection(&mut rng);
+			assert!(selection.fitness > fitness_weakest);
+		}
+	}
+
+	/// Crossover two creatures from the tournament selection and make sure
+	/// there are the same number of nodes and muscles as either parent
+	#[test]
+	fn crossover() {
+		let mut rng = rand::thread_rng();
+		let population = Population::new(500, &mut rng);
+		let ga = GeneticAlgorithm::new(population, false);
+
+		for _ in 0 .. 10 {
+			let parent_a = ga.selection(&mut rng);
+			let parent_b = ga.selection(&mut rng);
+
+			let child = GeneticAlgorithm::crossover(
+				parent_a,
+				parent_b,
+				&mut rng
+			);
+
+			assert!(
+				child.nodes.len() == parent_a.nodes.len() ||
+				child.nodes.len() == parent_b.nodes.len()
+			);
+			assert!(
+				child.muscles.len() == parent_a.muscles.len() ||
+				child.muscles.len() == parent_b.muscles.len()
+			);
+		}
 	}
 }

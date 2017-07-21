@@ -110,7 +110,7 @@ pub fn clamp(value: f32, range: Range<f32>) -> f32 {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	#[test]
 	#[should_panic]
 	fn physics_force_muscle() {

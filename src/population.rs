@@ -66,10 +66,12 @@ impl Population {
 	}
 }
 
-mod test {
+#[cfg(test)]
+mod tests {
 	use population::*;
 	use rand;
 
+	/// Create a population filled with randomly generated creatures
 	#[test]
 	fn new_pop() {
 		let mut rng = rand::thread_rng();
@@ -78,13 +80,12 @@ mod test {
 		assert_eq!(population.creatures.len(), 100);
 	}
 
+	/// Ensure that the fittest() function returns the fittest creature in
+	/// any given population
 	#[test]
 	fn fittest() {
 		let mut rng = rand::thread_rng();
 		let population = Population::new(100, &mut rng);
-
-		// Ensure that the fitness of the creature returned by the fittest()
-		// function is greater than the second element in the array.
 
 		// This function may be considered redundant as the creatures are
 		// sorted by fitness upon creation anyway (so index 0 always contains
@@ -94,16 +95,32 @@ mod test {
 		);
 	}
 
+	/// Ensure that the weakest() function returns the weakest (lowest fitness)
+	/// creature in any given population
 	#[test]
 	fn weakest() {
 		let mut rng = rand::thread_rng();
 		let population = Population::new(100, &mut rng);
 
-		// Ensure that the fitness of the creature returned by the weakest()
-		// function is less than the second to last element in the array.
 		assert!(
 			population.weakest().fitness < population.creatures[98].fitness
 		);
+	}
+
+	/// Calculate the entire population's average fitness
+	#[test]
+	fn fitness_average() {
+		let mut rng = rand::thread_rng();
+		let population = Population::new(100, &mut rng);
+
+		let average_fitness = population.fitness_average();
+		let weakest = population.weakest();
+		let fittest = population.fittest();
+
+		// Ensure that the population's average fitness lies between the
+		// weakest creature and the fittest creature
+		assert!(average_fitness > weakest.fitness);
+		assert!(average_fitness < fittest.fitness);
 	}
 
 }
