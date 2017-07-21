@@ -14,43 +14,43 @@ use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
 
 pub struct UIData {
 
-  // Window dimensions and speed to run at
-  pub width: u32, pub height: u32, pub fps: u32,
+	// Window dimensions and speed to run at
+	pub width: u32, pub height: u32, pub fps: u32,
 
-  // Whether the window runs in complete fullscreen mode or not
-  pub fullscreen: bool, pub changes: bool,
-  pub print: bool,
+	// Whether the window runs in complete fullscreen mode or not
+	pub fullscreen: bool, pub changes: bool,
+	pub print: bool,
 
-  // Window title (and main menu title)
-  pub title: &'static str,
+	// Window title (and main menu title)
+	pub title: &'static str,
 
-  // Which page should we draw?
-  pub gui_state: GUIState,
+	// Which page should we draw?
+	pub gui_state: GUIState,
 
-  // Rng object to create random numbers
-  pub rng: ThreadRng,
+	// Rng object to create random numbers
+	pub rng: ThreadRng,
 
-  // Generation Test Options
-  pub generation_size: usize,
-  pub use_genetic_algorithm: bool,
-  pub use_simulated_annealing: bool,
-  pub use_hill_climbing: bool,
-  pub total_generations: usize,
+	// Generation Test Options
+	pub generation_size: usize,
+	pub use_genetic_algorithm: bool,
+	pub use_simulated_annealing: bool,
+	pub use_hill_climbing: bool,
+	pub total_generations: usize,
 
-  pub spectate_method: usize,
-  pub spectate_generation: usize,
-  pub spectate_creature: usize,
+	pub spectate_method: usize,
+	pub spectate_generation: usize,
+	pub spectate_creature: usize,
 
-  pub draw_simulation: bool,
-  pub simulation_frame: u32,
-  pub process_generations: usize, pub process_generations_total: usize,
-  pub current_fitness: f32,
-  pub gen_do: usize,
-  pub optmethods: Vec<Box<OptimisationMethod>>,
+	pub draw_simulation: bool,
+	pub simulation_frame: u32,
+	pub process_generations: usize, pub process_generations_total: usize,
+	pub current_fitness: f32,
+	pub gen_do: usize,
+	pub optmethods: Vec<Box<OptimisationMethod>>,
 
-  // Modal information
-  pub modal_visible: bool,
-  pub modal_struct: Option<Modal>
+	// Modal information
+	pub modal_visible: bool,
+	pub modal_struct: Option<Modal>
 }
 
 impl UIData {
