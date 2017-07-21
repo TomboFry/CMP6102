@@ -452,7 +452,6 @@ fn menu_options (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 		.set(ids.options_toggle_print, ui)
 	{
 		app.print = value;
-		app.changes = true;
 	}
 
 	// Back/Save Button
@@ -587,7 +586,7 @@ time to process.".to_string(),
 		.set(ids.gen_btn_export, ui)
 	{
 		app.export_data();
-		open::that("export.csv");
+		open::that("export.csv").expect("Could not open export.csv");
 	}
 
 	// Export Lowest, Fittest, and quartile fitness values
@@ -603,7 +602,7 @@ time to process.".to_string(),
 		.set(ids.gen_btn_export_full, ui)
 	{
 		app.export_data_full();
-		open::that("export_full.csv");
+		open::that("export_full.csv").expect("Could not open export_full.csv");
 	}
 
 	// Set the currently viewed generation

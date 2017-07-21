@@ -1,5 +1,4 @@
 use piston_window::*;
-use piston::input;
 use conrod::text::font;
 use gui::GUIState;
 use modal::Modal;
@@ -15,43 +14,43 @@ use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
 
 pub struct UIData {
 
-	// Window dimensions and speed to run at
-	pub width: u32, pub height: u32, pub fps: u32,
+  // Window dimensions and speed to run at
+  pub width: u32, pub height: u32, pub fps: u32,
 
-	// Whether the window runs in complete fullscreen mode or not
-	pub fullscreen: bool, pub changes: bool,
-	pub print: bool,
+  // Whether the window runs in complete fullscreen mode or not
+  pub fullscreen: bool, pub changes: bool,
+  pub print: bool,
 
-	// Window title (and main menu title)
-	pub title: &'static str,
+  // Window title (and main menu title)
+  pub title: &'static str,
 
-	// Which page should we draw?
-	pub gui_state: GUIState,
+  // Which page should we draw?
+  pub gui_state: GUIState,
 
-	// Rng object to create random numbers
-	pub rng: ThreadRng,
+  // Rng object to create random numbers
+  pub rng: ThreadRng,
 
-	// Generation Test Options
-	pub generation_size: usize,
-	pub use_genetic_algorithm: bool,
-	pub use_simulated_annealing: bool,
-	pub use_hill_climbing: bool,
-	pub total_generations: usize,
+  // Generation Test Options
+  pub generation_size: usize,
+  pub use_genetic_algorithm: bool,
+  pub use_simulated_annealing: bool,
+  pub use_hill_climbing: bool,
+  pub total_generations: usize,
 
-	pub spectate_method: usize,
-	pub spectate_generation: usize,
-	pub spectate_creature: usize,
+  pub spectate_method: usize,
+  pub spectate_generation: usize,
+  pub spectate_creature: usize,
 
-	pub draw_simulation: bool,
-	pub simulation_frame: u32,
-	pub process_generations: usize, pub process_generations_total: usize,
-	pub current_fitness: f32,
-	pub gen_do: usize,
-	pub optmethods: Vec<Box<OptimisationMethod>>,
+  pub draw_simulation: bool,
+  pub simulation_frame: u32,
+  pub process_generations: usize, pub process_generations_total: usize,
+  pub current_fitness: f32,
+  pub gen_do: usize,
+  pub optmethods: Vec<Box<OptimisationMethod>>,
 
-	// Modal information
-	pub modal_visible: bool,
-	pub modal_struct: Option<Modal>
+  // Modal information
+  pub modal_visible: bool,
+  pub modal_struct: Option<Modal>
 }
 
 impl UIData {
@@ -169,12 +168,17 @@ contents of print.txt");
 		if self.changes {
 			self.changes = false;
 
-			let mut file = File::create("fullscreen.txt").unwrap();
+			let mut file =
+				File::create("fullscreen.txt")
+				.expect("Could not open fullscreen.txt for writing");
+
 			file.write_all(
 				if self.fullscreen { b"true" } else { b"false" }
 			).unwrap();
 
-			let mut file_print = File::create("print.txt").unwrap();
+			let mut file_print =
+				File::create("print.txt")
+				.expect("Could not open print.txt for writing");
 			file_print.write_all(
 				if self.print { b"true" } else { b"false" }
 			).unwrap();
@@ -196,12 +200,15 @@ this application is required.".to_string(),
 	}
 
 	pub fn export_data(&mut self) {
-		let mut buffer = File::create("export.csv").unwrap();
+		let mut buffer =
+			File::create("export.csv")
+				.expect("Could not open export.csv for writing");
 		for method in 0 .. self.optmethods.len() {
 			let gen_size = self.generation_size;
 			let data = self.optmethods[method].get_data();
 			let mut generation = 0;
-			write!(buffer, "{},Lowest,Q1,Avg.,Q3,Highest\n", data.title);
+			write!(buffer, "{},Lowest,Q1,Avg.,Q3,Highest\n", data.title)
+				.expect("Could not write data");
 			for gen in &data.generations {
 				let min = gen_size - 1;
 				let q1 = (gen_size as f64 * 0.75).round() as usize;
@@ -216,24 +223,26 @@ this application is required.".to_string(),
 					gen.fitness_average(),
 					gen.creatures[q3].fitness,
 					gen.creatures[max].fitness
-				);
+				).expect("Could not write data");
 				generation += 1;
 			}
 		}
 	}
 
 	pub fn export_data_full(&mut self) {
-		let mut buffer = File::create("export_full.csv").unwrap();
+		let mut buffer = File::create("export_full.csv")
+				.expect("Could not open export_full.csv for writing");
 		for method in 0 .. self.optmethods.len() {
 			let data = self.optmethods[method].get_data();
-			write!(buffer, "{}\n", data.title);
+			write!(buffer, "{}\n", data.title).unwrap();
 			for gen in &data.generations {
 				for creature in &gen.creatures {
-					write!(buffer, "{},", creature.fitness as isize);
+					write!(buffer, "{},", creature.fitness as isize)
+					.expect("Could not write data");
 				}
-				write!(buffer, "\n");
+				write!(buffer, "\n").expect("Could not write data");
 			}
-			write!(buffer, "\n");
+			write!(buffer, "\n").expect("Could not write data");
 		}
 	}
 

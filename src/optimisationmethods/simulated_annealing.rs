@@ -13,16 +13,14 @@ pub const TEMP_ALPHA: f64 = 0.995;
 
 pub struct SimulatedAnnealing {
 	pub data: OpMethodData,
-	pub temp: f64,
-	pub notified: bool
+	pub temp: f64
 }
 
 impl SimulatedAnnealing {
 	pub fn new(population: Population, print: bool) -> Box<SimulatedAnnealing> {
 		Box::new(SimulatedAnnealing {
 			data: OpMethodData::new(vec![population], "SA".to_string(), print),
-			temp: TEMP_HIGH,
-			notified: false
+			temp: TEMP_HIGH
 		})
 	}
 }
@@ -48,20 +46,19 @@ impl OptimisationMethod for SimulatedAnnealing {
 
 		self.temp = self.temp * TEMP_ALPHA;
 
+		// Get a normalised value between 0 and 1 to use inside the
+		// mutation function
 		let percentage = self.temp / TEMP_HIGH;
 
 		if self.temp <= TEMP_LOW {
 			let pop = self.data.generations[self.data.gen].clone();
 			self.data.generations.push(pop);
 			self.data.gen += 1;
-			if !self.notified {
-				return Err((
-					"Simulated Annealing".to_string(),
-					"The lowest temperature has been reached and cannot
-					optimise the current creatures any further".to_string()
-				));
-			}
-			self.notified = true;
+			return Err((
+				"Simulated Annealing".to_string(),
+				"The lowest temperature has been reached and cannot optimise
+the current creatures any further".to_string()
+			));
 		}
 
 		self.data.generations[self.data.gen].creatures

@@ -57,8 +57,8 @@ impl OpMethodData {
 		min
 	}
 
-	// Returns a tuple containing the generation of which the
-	// fittest creature in the entire data structure exists
+	/// Returns a tuple containing the generation of which the
+	/// fittest creature in the entire data structure exists
 	pub fn generations_get_fittest_gen(&self) -> usize {
 		let mut max_gen = 0;
 		let mut max = 0.0;
