@@ -252,8 +252,8 @@ pub trait OptimisationMethod {
 }
 
 mod tests {
-	use rand;
-	use optimisationmethods::OptimisationMethod;
+	//use rand;
+	//use optimisationmethods::OptimisationMethod;
 
 	#[test]
 	#[should_panic]

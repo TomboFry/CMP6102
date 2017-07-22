@@ -4,7 +4,7 @@ use rand::{Rng, ThreadRng};
 use rand::distributions::range::SampleRange;
 
 /// Constants to define a creatures lower and upper exclusive bounds.
-/// eg. a creature can have only 2 to 6 nodes. Any less and its useless,
+/// eg. a creature can have only 3 to 6 nodes. Any less and its useless,
 ///     any more and it's going to behave like a big mess.
 pub const BOUNDS_NODE_COUNT: Range<u8> = 3 .. 6;
 pub const BOUNDS_NODE_X: Range<f32> = 0.0 .. 256.0;
