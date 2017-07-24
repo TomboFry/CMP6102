@@ -124,7 +124,7 @@ mod tests {
 	fn fitness_10gens() {
 		let mut rng = rand::thread_rng();
 
-		for _ in 0 .. 50 {
+		for _ in 0 .. 10 {
 			// Create a new population of 100 creatures
 			let population = Population::new(100, &mut rng);
 

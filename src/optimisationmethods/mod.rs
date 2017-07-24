@@ -39,6 +39,7 @@ impl OpMethodData {
 		}
 	}
 
+	/// Returns the highest fitness value from the entire data structure
 	pub fn generations_get_fittest(&self) -> f32 {
 		let mut max = 0.0;
 		for gen in &self.generations {
@@ -48,6 +49,7 @@ impl OpMethodData {
 		max
 	}
 
+	/// Returns the lowest fitness value from the entire data structure
 	pub fn generations_get_weakest(&self) -> f32 {
 		let mut min = 100000.0;
 		for gen in &self.generations {
@@ -57,7 +59,7 @@ impl OpMethodData {
 		min
 	}
 
-	/// Returns a tuple containing the generation of which the
+	/// Returns the generation's index of which the
 	/// fittest creature in the entire data structure exists
 	pub fn generations_get_fittest_gen(&self) -> usize {
 		let mut max_gen = 0;
@@ -69,6 +71,8 @@ impl OpMethodData {
 		max_gen
 	}
 
+	/// Returns the generation's index of which the
+	/// weakest creature in the entire data structure exists
 	pub fn generations_get_weakest_gen(&self) -> usize {
 		let mut min_gen = 0;
 		let mut min = 0.0;
@@ -79,18 +83,22 @@ impl OpMethodData {
 		min_gen
 	}
 
+	/// Returns the fittest creature from a specified generation
 	pub fn creature_get_fittest (&self, gen: usize) -> &Creature {
 		&self.generations[gen].fittest()
 	}
 
+	/// Returns the average fitness of a population
 	pub fn creature_get_average (&self, gen: usize) -> f32 {
 		self.generations[gen].fitness_average()
 	}
 
+	/// Returns the weakest creature from a specified generation
 	pub fn creature_get_weakest (&self, gen: usize) -> &Creature {
 		&self.generations[gen].weakest()
 	}
 
+	/// Returns the average time spent running the `generation_single` function
 	pub fn average_gen_time(&self) -> u64 {
 		if self.gen_time.len() == 0 { return 0 }
 
@@ -101,6 +109,8 @@ impl OpMethodData {
 		total / self.gen_time.len() as u64
 	}
 
+	/// Mutates a creature by adding/removing nodes and muscles, as well as
+	/// slightly modifying their evolution properties
 	pub fn mutate(creature: &Creature, rng: &mut ThreadRng, rate: f32)
 	    -> Creature {
 		// Start by cloning the original creature so we can modify the values
@@ -139,6 +149,20 @@ impl OpMethodData {
 			);
 		}
 
+		// Now just make sure there are no muscles creating a
+		// cycle in the graph
+		new_creature.muscles = Creature::check_colliding_muscles(
+			&new_creature.muscles
+		);
+
+		// Make sure any nodes and muscles we've mutated/crossed over did not
+		// leave any node by itself
+		Creature::check_lonely_nodes(
+			&new_creature.nodes,
+			&mut new_creature.muscles,
+			rng
+		);
+
 		// For each node in the creature
 		for node in &mut new_creature.nodes {
 			// Modify the values of each property by the specified rate, but
@@ -165,20 +189,6 @@ impl OpMethodData {
 				rng
 			);
 		}
-
-		// Make sure any nodes and muscles we've mutated/crossed over did not
-		// leave any node by itself
-		Creature::check_lonely_nodes(
-			&new_creature.nodes,
-			&mut new_creature.muscles,
-			rng
-		);
-
-		// Now just make sure there are no muscles creating a
-		// cycle in the graph
-		new_creature.muscles = Creature::check_colliding_muscles(
-			&new_creature.muscles
-		);
 
 		// Do the same process as above by for the muscles.
 		for muscle in &mut new_creature.muscles {
@@ -219,6 +229,8 @@ impl OpMethodData {
 		new_creature
 	}
 
+	/// Takes a floating-point number and mutates it slightly
+	/// *within the specified bounds*
 	pub fn mutate_clamp(
 		value: f32,
 		rate: f32,
@@ -228,6 +240,7 @@ impl OpMethodData {
 		(value + rng.gen_range(-rate, rate)).max(range.start).min(range.end)
 	}
 
+	/// Takes an integer and mutates it slightly *within the specified bounds*
 	pub fn mutate_clamp_int(
 		value: u32,
 		rate: f32,
@@ -251,13 +264,157 @@ pub trait OptimisationMethod {
 	fn get_data          (&self) -> &OpMethodData;
 }
 
+#[cfg(test)]
 mod tests {
-	//use rand;
-	//use optimisationmethods::OptimisationMethod;
+	use rand;
+	use optimisationmethods::OpMethodData;
+	use population::Population;
 
-	#[test]
-	#[should_panic]
-	fn testing() {
-		unimplemented!();
+	/// Create a struct with two populations, both with one creature in,
+	/// where gen0 has a fitness of 0, and gen1 has a fitness of 100
+	fn om_setup_single() -> OpMethodData {
+		let mut rng = rand::thread_rng();
+		let mut population_a = Population::new(1, &mut rng);
+		let mut population_b = population_a.clone();
+		population_a.creatures[0].fitness = 0.0;
+		population_b.creatures[0].fitness = 100.0;
+
+		// Return the new struct
+		OpMethodData::new(
+			vec![population_a, population_b],
+			"Single".to_string(),
+			true
+		)
 	}
+
+	/// Create a struct with two populations, both with **two** creatures in
+	/// where gen0 has an average fitness of 50, and gen1 with 150, and the
+	/// average gen time is 150
+	fn om_setup_double() -> OpMethodData {
+		let mut rng = rand::thread_rng();
+		let mut population_a = Population::new(2, &mut rng);
+		let mut population_b = population_a.clone();
+		population_a.creatures[0].fitness = 0.0;
+		population_a.creatures[1].fitness = 100.0;
+		population_b.creatures[0].fitness = 100.0;
+		population_b.creatures[1].fitness = 200.0;
+
+		// Return the new struct
+		let mut om = OpMethodData::new(
+			vec![population_a, population_b],
+			"Double".to_string(),
+			true
+		);
+
+		// Set the time spent generating for each generation to 100ms and 200ms
+		// respectively
+		om.gen_time = vec![100u64, 200u64];
+
+		om
+	}
+
+	/// Create two generations and make sure it returns the fitter of the two
+	#[test]
+	fn generations_get_fittest() {
+		assert_approx_eq!(om_setup_single().generations_get_fittest(), 100.0);
+	}
+
+	/// Create two generations and make sure it returns the weaker of the two
+	#[test]
+	fn generations_get_weakest() {
+		assert_approx_eq!(om_setup_single().generations_get_weakest(), 0.0);
+	}
+
+	/// Create two generations and make sure it returns the fitter generation
+	/// index of the two
+	#[test]
+	fn generations_get_fittest_gen() {
+		assert_eq!(om_setup_single().generations_get_fittest_gen(), 1);
+	}
+
+	/// Create two generations and make sure it returns the fitter generation
+	/// index of the two
+	#[test]
+	fn generations_get_weakest_gen() {
+		assert_eq!(om_setup_single().generations_get_weakest_gen(), 0);
+	}
+
+	/// Make sure that the function returns the highest fitness creature
+	/// for any given generation
+	#[test]
+	fn creature_get_fittest() {
+		let om = om_setup_double();
+		assert_approx_eq!(om.creature_get_fittest(0).fitness, 100.0);
+		assert_approx_eq!(om.creature_get_fittest(1).fitness, 200.0);
+	}
+
+	/// Make sure that the function returns the lowest fitness creature
+	/// for any given generation
+	#[test]
+	fn creature_get_weakest() {
+		let om = om_setup_double();
+		assert_approx_eq!(om.creature_get_weakest(0).fitness, 0.0);
+		assert_approx_eq!(om.creature_get_weakest(1).fitness, 100.0);
+	}
+
+	/// Make sure that the function returns the average fitness value for any
+	/// given generation
+	#[test]
+	fn creature_get_average() {
+		let om = om_setup_double();
+		assert_approx_eq!(om.creature_get_average(0), 50.0);
+		assert_approx_eq!(om.creature_get_average(1), 150.0);
+	}
+
+	/// Make sure the function returns the correct average time spent running
+	/// the `generation_single` function. (Values in the vector are hard-coded)
+	#[test]
+	fn average_gen_time() {
+		let om = om_setup_double();
+		assert_eq!(om.average_gen_time(), 150u64);
+	}
+
+	/// Make sure the floating-point value is randomly mutated within the
+	/// specified bounds
+	#[test]
+	fn mutate_clamp() {
+		let mut rng = rand::thread_rng();
+
+		// Mutate a value on the upper bounds by a maximum of 1, ensuring it's
+		// still equal to or less than the upper bounds, and hasn't mutated
+		// more than the specified amount
+		let mutate_a = OpMethodData::mutate_clamp(
+			10.0, 1.0, 0.0 .. 10.0, &mut rng
+		);
+		assert!(mutate_a <= 10.0 && mutate_a >= 9.0);
+
+		// Mutate a value in the middle of the bounds by a maximum greater than
+		// the width of the bounds, ensuring it's still within the bounds.
+		let mutate_b = OpMethodData::mutate_clamp(
+			10.0, 5.0, 8.0 .. 12.0, &mut rng
+		);
+		assert!(mutate_b <= 12.0 && mutate_b >= 8.0);
+	}
+
+	/// Make sure the integer is randomly mutated within the specified bounds
+	#[test]
+	fn mutate_clamp_int() {
+		let mut rng = rand::thread_rng();
+
+		// Mutate a value on the upper bounds by a maximum of 5, ensuring it's
+		// still equal to or less than the upper bounds, and hasn't mutated
+		// more than the specified amount
+		let mutate_a = OpMethodData::mutate_clamp_int(
+			10, 5.0, 0 .. 10, &mut rng
+		);
+		assert!(mutate_a <= 10 && mutate_a >= 5);
+
+		// Mutate a value in the middle of the bounds by a maximum greater than
+		// the width of the bounds, ensuring it's still within the bounds.
+		let mutate_b = OpMethodData::mutate_clamp_int(
+			10, 5.0, 8 .. 12, &mut rng
+		);
+		assert!(mutate_b <= 12 && mutate_b >= 8);
+	}
+
 }

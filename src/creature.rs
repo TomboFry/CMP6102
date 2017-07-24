@@ -114,8 +114,8 @@ impl Creature {
 			Creature::add_muscle_random(&nodes, rng)
 		}).collect::<Vec<Muscle>>();
 
-		Creature::check_lonely_nodes(&nodes, &mut muscles, rng);
 		muscles = Creature::check_colliding_muscles(&muscles);
+		Creature::check_lonely_nodes(&nodes, &mut muscles, rng);
 
 		// Finally, return the creature to be added to the population
 		Creature {

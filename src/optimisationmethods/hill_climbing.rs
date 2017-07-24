@@ -90,3 +90,37 @@ impl OptimisationMethod for HillClimbing {
 		&self.data
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use rand;
+	use population::Population;
+	use optimisationmethods::hill_climbing::HillClimbing;
+	use optimisationmethods::OptimisationMethod;
+
+	/// Run the generation function 10 times and make sure the average
+	/// population's fitness has increased. Run these 50 times to ensure
+	/// it's actually successful.
+	#[test]
+	fn fitness_10gens() {
+		let mut rng = rand::thread_rng();
+
+		for _ in 0 .. 10 {
+			// Create a new population of 100 creatures
+			let population = Population::new(100, &mut rng);
+
+			// Initalise the genetic algorithm with the population
+			let mut hc = HillClimbing::new(population, false);
+
+			for _ in 0 .. 10 {
+				let _ = hc.generation_single();
+			}
+
+			let initial_fitness = hc.get_data().creature_get_average(0);
+			let final_fitness = hc.get_data().creature_get_average(10);
+
+			assert!(final_fitness > initial_fitness);
+		}
+	}
+}
+

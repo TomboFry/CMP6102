@@ -162,7 +162,8 @@ fn main() {
 				creature_draw(
 					&creature,
 					(app.width as f64 / 2.0) - x - 128.0,
-					app.height as f64 - 256.0 - y,
+					app.height as f64 - 256.0
+					- y - creature::NODE_RADIUS as f64,
 					1.0, context, graphics
 				);
 
@@ -172,8 +173,7 @@ fn main() {
 					 app.width as f64, y],
 					context.transform, graphics
 				);
-				if app.draw_simulation &&
-				   app.simulation_frame < physics::SIM_LENGTH {
+				if app.draw_simulation {
 					physics::simulation_step(
 						app.simulation_frame,
 						&mut creature

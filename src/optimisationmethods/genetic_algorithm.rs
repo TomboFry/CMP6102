@@ -188,7 +188,7 @@ impl OptimisationMethod for GeneticAlgorithm {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	use rand;
 	use population::Population;
 	use optimisationmethods::genetic_algorithm::GeneticAlgorithm;
@@ -247,7 +247,7 @@ mod test {
 		let population = Population::new(500, &mut rng);
 		let ga = GeneticAlgorithm::new(population, false);
 
-		for _ in 0 .. 50 {
+		for _ in 0 .. 10 {
 			let parent_a = ga.selection(&mut rng);
 			let parent_b = ga.selection(&mut rng);
 

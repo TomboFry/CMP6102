@@ -3,7 +3,7 @@ use conrod::color::Color;
 use conrod::{widget, UiCell, Colorable, Positionable,
 	         Widget, Sizeable, Labelable, Borderable};
 use app::{UIData, Fonts};
-use cmp6102::physics::{self, lerp};
+use cmp6102::physics::{self, lerp, clamp};
 use open;
 
 // Create all the application's GUI widgets here:
@@ -959,7 +959,7 @@ fn menu_spectate (
 
 	// Draw a(n immutable) slider to show how far in the simulation we are
 	widget::Slider::new(
-		app.simulation_frame as f32,
+		clamp(app.simulation_frame as f32, 0.0 .. physics::SIM_LENGTH as f32),
 		0.0,
 		physics::SIM_LENGTH as f32 - 1.0
 	)
@@ -974,7 +974,11 @@ fn menu_spectate (
 	)
 	.label_color(COL_LBL)
 	.label_font_size(20)
-	.color(COL_BTN)
+	.color(if app.simulation_frame > physics::SIM_LENGTH {
+		COL_BTN
+	} else {
+		COL_BG
+	})
 	.w_h(256.0, 42.0)
 	.bottom_left_with_margin(21.0)
 	.border(0.0)
