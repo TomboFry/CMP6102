@@ -24,7 +24,7 @@ fn three_opt_methods() {
 	let population_size = 100;
 	let print_data = true;
 
-	let pop = common::init(population_size);
+	let pop = init(population_size);
 	let mut om: Vec<Box<OptimisationMethod>> = Vec::with_capacity(3);
 
 	// Clone the population for the first two, then move the ownership on the

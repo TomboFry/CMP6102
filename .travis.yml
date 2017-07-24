@@ -4,5 +4,5 @@ rust:
 os:
   - linux
 script:
-  - cargo test --lib --release --verbose
-  - cargo test --test integration --release --verbose -- --nocapture
+  - cargo test --lib --release
+  - cargo test --test integration --release -- --nocapture
