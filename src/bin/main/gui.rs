@@ -16,6 +16,7 @@ widget_ids! {
 		menu_btn_start,
 		menu_btn_options,
 		menu_btn_exit,
+		menu_txt_copyright,
 
 		// Options Menu Widgets
 		options_canvas,
@@ -239,6 +240,19 @@ fn menu_main (ui: &mut UiCell, ids: &Ids, app: &mut UIData, fonts: &Fonts) {
 	{
 		process::exit(0);
 	}
+
+	widget::Text::new(
+		"© Thomas Gardiner (Thomas.Gardiner3@mail.bcu.ac.uk) 2016-2017"
+		)
+		.color(COL_LBL)
+		.font_size(16)
+		.font_id(fonts.bold)
+		.center_justify()
+		.w(canvas_width - (MARGIN * 2.0))
+		.line_spacing(8.0)
+		.wrap_by_word()
+		.mid_bottom_with_margin(SPACING)
+		.set(ids.menu_txt_copyright, ui);
 }
 
 fn menu_new_test (

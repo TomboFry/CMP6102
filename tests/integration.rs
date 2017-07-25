@@ -4,7 +4,9 @@ extern crate rand;
 use cmp6102::population::Population;
 use cmp6102::optimisationmethods::OptimisationMethod;
 use cmp6102::optimisationmethods::genetic_algorithm::GeneticAlgorithm;
-use cmp6102::optimisationmethods::simulated_annealing::SimulatedAnnealing;
+use cmp6102::optimisationmethods::simulated_annealing::{
+	self, SimulatedAnnealing
+};
 use cmp6102::optimisationmethods::hill_climbing::HillClimbing;
 
 /// Initialise the data required for the integration tests
@@ -60,4 +62,32 @@ fn three_opt_methods() {
 			data.generations[0].fittest().fitness
 		);
 	}
+}
+
+#[test]
+fn sa_lowest_temperature() {
+	// Max number of generations the SA can perform
+	let generation_count = 1377;
+	let population_size = 50;
+	let print_data = true;
+
+	let mut sa = SimulatedAnnealing::new(init(population_size), print_data);
+
+	// Run the specified number of generations on SA
+	// (+1 because range is exclusive on upper bounds)
+	for _ in 0 .. (generation_count + 1) {
+		if sa.generation_single().is_err() {
+			// If the SA temperature falls below 0.1, fail the whole test
+			assert!(false);
+		}
+	}
+
+	// Make sure the temperature is close to crossing over the threshold
+	assert!(
+		sa.temp > simulated_annealing::TEMP_LOW &&
+		sa.temp <= simulated_annealing::TEMP_LOW + 0.01
+	);
+
+	// Make sure it fails after the next generation
+	assert!(sa.generation_single().is_err());
 }
