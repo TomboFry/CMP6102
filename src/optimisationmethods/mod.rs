@@ -308,7 +308,7 @@ mod tests {
 
 		// Set the time spent generating for each generation to 100ms and 200ms
 		// respectively
-		om.gen_time = vec![100u64, 200u64];
+		om.gen_time = vec![100.0, 200.0];
 
 		om
 	}
@@ -371,7 +371,7 @@ mod tests {
 	#[test]
 	fn average_gen_time() {
 		let om = om_setup_double();
-		assert_eq!(om.average_gen_time(), 150u64);
+		assert_eq!(om.average_gen_time(), 150.0);
 	}
 
 	/// Make sure the floating-point value is randomly mutated within the
