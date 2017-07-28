@@ -598,8 +598,10 @@ mod tests {
 			);
 
 			assert!(
-				(muscle.time_extended >= creature::BOUNDS_MUSCLE_TIME_EXTENDED.start) &&
-				(muscle.time_extended < creature::BOUNDS_MUSCLE_TIME_EXTENDED.end)
+				(muscle.time_extended >=
+				 creature::BOUNDS_MUSCLE_TIME_EXTENDED.start) &&
+				(muscle.time_extended <
+				 creature::BOUNDS_MUSCLE_TIME_EXTENDED.end)
 			);
 
 			assert!(

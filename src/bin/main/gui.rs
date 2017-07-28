@@ -764,12 +764,12 @@ time to process.".to_string()
 
 		// Display some information about the optimisation
 		// method's performance.
-		widget::Text::new(&*format!("{}: Avg. time: {}ms\nFitness: {}",
+		widget::Text::new(&*format!("{}\nAvg. time: {:4.2}ms\nFitness: {:4.2}",
 				data.title,
 				data.average_gen_time(),
 				data.generations[app.spectate_generation]
 				    .creatures[data.spectate_creature]
-				    .fitness as i16)
+				    .fitness)
 			)
 			.color(COL_TXT)
 			.font_size(18)

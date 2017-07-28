@@ -81,10 +81,10 @@ fn main () {
 	let mut sample_fitness: Vec<Vec<f32>> =
 		(0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
 
-	let mut sample_time: Vec<Vec<u64>> =
+	let mut sample_time: Vec<Vec<f32>> =
 		(0 .. optmethods.len()).map(|_| Vec::with_capacity(sample_size)).collect();
 
-	for _ in 0 .. sample_size {
+	for sample_index in 0 .. sample_size {
 		let population = Population::new(pop_size, &mut rng);
 
 		let mut opt: Vec<Box<OptimisationMethod>> =
@@ -92,30 +92,41 @@ fn main () {
 
 		for mtd in &optmethods {
 			match *mtd {
-				"GA" => opt.push(GeneticAlgorithm::new(population.clone(), true)),
-				"HC" => opt.push(HillClimbing::new(population.clone(), true)),
-				"SA" => opt.push(SimulatedAnnealing::new(population.clone(), true)),
+				"GA" => opt.push(GeneticAlgorithm::new(population.clone(), false)),
+				"HC" => opt.push(HillClimbing::new(population.clone(), false)),
+				"SA" => opt.push(SimulatedAnnealing::new(population.clone(), false)),
 				_ => {}
 			}
 		}
 
+		let mut total_time = 0.0;
 		for mtd in 0 .. opt.len() {
 			for _ in 0 .. gen_count {
-				match opt[mtd].generation_single() {
-					Err(_) => break,
-					_ => {}
+				if opt[mtd].generation_single().is_err() {
+					break;
 				}
 			}
+
 			let data = opt[mtd].get_data();
+			let gen_time = data.average_gen_time();
+			println!("{}   Fittest: {:4.2}   Time: {} ms",
+			         data.title,
+					 data.generations_get_fittest(),
+			         gen_time
+			);
 			sample_fitness[mtd].push(data.generations_get_fittest());
-			sample_time[mtd].push(data.average_gen_time());
+			sample_time[mtd].push(gen_time);
+			total_time += gen_time;
 		}
+		println!(
+			"\nEst. Time Remaining: {:.2} secs\n", ((total_time as usize * gen_count) * (sample_size - (sample_index + 1))) as f64 / 1000.0
+		);
 	}
 	println!("");
 	for mtd in 0 .. optmethods.len() {
 
 		let mut average_fitness: f32 = 0.0;
-		let mut average_time: u64 = 0;
+		let mut average_time: f32 = 0.0;
 
 		for fitness in &sample_fitness[mtd] {
 			average_fitness += *fitness;
@@ -125,9 +136,9 @@ fn main () {
 		}
 
 		average_fitness /= sample_size as f32;
-		average_time /= sample_size as u64;
+		average_time /= sample_size as f32;
 		println!(
-			"{}:\n    Average Time:\t{}ms\n    Average Fitness:\t{}",
+			"{}:\n    Average Time:\t{} ms\n    Average Fitness:\t{}",
 			optmethods[mtd], average_time, average_fitness
 		);
 	}

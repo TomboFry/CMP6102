@@ -36,7 +36,7 @@ impl OptimisationMethod for HillClimbing {
 			self.data.generations[self.data.gen].creatures[0].fitness
 		); }
 
-		let time_start = time::precise_time_ns() / 1_000_000;
+		let time_start = time::precise_time_ns() as f32 / 1_000_000.0;
 
 		self.data.generations[self.data.gen].creatures
 		.par_iter_mut()
@@ -66,7 +66,7 @@ impl OptimisationMethod for HillClimbing {
 
 		new_population.sort_by_fittest();
 
-		let time_end = time::precise_time_ns() / 1_000_000;
+		let time_end = time::precise_time_ns() as f32 / 1_000_000.0;
 
 		// After having created the new population, sort the current
 		// population by fittest, add the new population to the optimisation

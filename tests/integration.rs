@@ -24,7 +24,7 @@ fn three_opt_methods() {
 	// Setup the constants to use in this specific test
 	let generation_count = 50;
 	let population_size = 100;
-	let print_data = true;
+	let print_data = false;
 
 	let pop = init(population_size);
 	let mut om: Vec<Box<OptimisationMethod>> = Vec::with_capacity(3);
@@ -69,7 +69,7 @@ fn sa_lowest_temperature() {
 	// Max number of generations the SA can perform
 	let generation_count = 1377;
 	let population_size = 50;
-	let print_data = true;
+	let print_data = false;
 
 	let mut sa = SimulatedAnnealing::new(init(population_size), print_data);
 

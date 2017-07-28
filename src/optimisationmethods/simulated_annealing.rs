@@ -42,7 +42,7 @@ impl OptimisationMethod for SimulatedAnnealing {
 		); }
 
 		// SIMULATED ANNEALING MAGIC HAPPENS HERE ONWARDS
-		let time_start = time::precise_time_ns() / 1_000_000;
+		let time_start = time::precise_time_ns() as f32 / 1_000_000.0;
 
 		self.temp = self.temp * TEMP_ALPHA;
 
@@ -85,7 +85,7 @@ the current creatures any further".to_string()
 		new_population.sort_by_fittest();
 
 		// SIMULATED ANNEALING MAGIC FINISHES HERE ONWARDS
-		let time_end = time::precise_time_ns() / 1_000_000;
+		let time_end = time::precise_time_ns() as f32 / 1_000_000.0;
 
 		// After having created the new population, sort the current
 		// population by fittest, add the new population to the optimisation

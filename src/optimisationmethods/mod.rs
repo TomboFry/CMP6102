@@ -17,7 +17,7 @@ pub type GenResult = Result<(), (String, String)>;
 pub struct OpMethodData {
 	pub generations: Vec<Population>,
 	pub gen: usize,
-	pub gen_time: Vec<u64>,
+	pub gen_time: Vec<f32>,
 	pub spectate_creature: usize,
 	pub title: String,
 	pub print: bool
@@ -99,14 +99,14 @@ impl OpMethodData {
 	}
 
 	/// Returns the average time spent running the `generation_single` function
-	pub fn average_gen_time(&self) -> u64 {
-		if self.gen_time.len() == 0 { return 0 }
+	pub fn average_gen_time(&self) -> f32 {
+		if self.gen_time.len() == 0 { return 0.0 }
 
-		let mut total = 0u64;
+		let mut total: f32 = 0.0;
 		for time in &self.gen_time {
 			total += *time;
 		}
-		total / self.gen_time.len() as u64
+		total / self.gen_time.len() as f32
 	}
 
 	/// Mutates a creature by adding/removing nodes and muscles, as well as
@@ -120,7 +120,7 @@ impl OpMethodData {
 		new_creature.reset_position();
 
 		// Have the same random chance to remove a random node
-		if rng.gen::<f32>() * PROB_NODE_CHANGE <= 1.0 &&
+		if rng.gen::<f32>() * (PROB_NODE_CHANGE + 8.0) <= 1.0 &&
 			(creature.nodes.len() as u8) >
 			creature::BOUNDS_NODE_COUNT.start
 		{
